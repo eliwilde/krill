@@ -33,17 +33,40 @@ function normalise(raw) {
     .replace(/(?:es|s)$/, '');
 }
 
-function listHas(list, guess) {
-  if (!list) return false;
-  return list.some((entry) => {
-    const e = normalise(entry);
-    if (!e || !guess) return false;
-    // Exact, or one fully contains the other as a whole phrase. Guard against
-    // very short guesses matching inside longer entries by accident.
-    if (e === guess) return true;
-    if (guess.length >= 4 && (e.includes(guess) || guess.includes(e))) return true;
+/* How well an entry matches a guess. Higher is a better match; 0 is none.
+ *
+ * Specificity matters more than tier order. "snow leopard" overlaps the
+ * surface entry "leopard", but it is its own, deeper answer — matching it to
+ * "leopard" would pay 10 instead of 15. Same for "jaguarundi" vs "jaguar" and
+ * "mangosteen" vs "mango". So we score every candidate and take the closest
+ * one, rather than the first tier that happens to overlap. */
+function matchStrength(entry, guess) {
+  const e = normalise(entry);
+  if (!e || !guess) return 0;
+  if (e === guess) return 1000;
+
+  // Partial credit only for whole-word containment, so "mango" no longer
+  // swallows "mangosteen" — but "chow fun" still reaches "beef chow fun".
+  const words = (s) => s.split(' ').filter(Boolean);
+  const contains = (hay, needle) => {
+    const h = words(hay), n = words(needle);
+    if (n.length > h.length) return false;
+    for (let i = 0; i <= h.length - n.length; i++) {
+      if (n.every((w, j) => h[i + j] === w)) return true;
+    }
     return false;
-  });
+  };
+
+  if (guess.length < 4) return 0;
+  if (!contains(e, guess) && !contains(guess, e)) return 0;
+
+  // Closer in length = more specific a match.
+  return 100 - Math.abs(e.length - guess.length);
+}
+
+function bestInList(list, guess) {
+  if (!list) return 0;
+  return list.reduce((best, entry) => Math.max(best, matchStrength(entry, guess)), 0);
 }
 
 function shuffled(arr) {
@@ -61,11 +84,20 @@ export function scoreAnswer(prompt, raw) {
   const guess = normalise(raw);
   if (!guess) return { tier: 'none', ...TIERS.none };
 
+  // Best match wins, not first match. On a tie the deeper tier takes it —
+  // if an answer genuinely sits in two lists, the player gets the benefit.
+  let bestTier = null;
+  let bestScore = 0;
+
   for (const tier of MATCH_ORDER) {
-    if (listHas(prompt[tier], guess)) {
-      return { tier, ...TIERS[tier] };
+    const score = bestInList(prompt[tier], guess);
+    if (score >= bestScore && score > 0) {
+      bestScore = score;
+      bestTier = tier;
     }
   }
+
+  if (bestTier) return { tier: bestTier, ...TIERS[bestTier] };
   return { tier: 'unlisted', ...TIERS.unlisted };
 }
 
