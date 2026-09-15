@@ -17,18 +17,17 @@ Then open <http://127.0.0.1:8000>. No build step, no dependencies.
 
 ## Publishing to GitHub Pages
 
-The repo is committed and ready. Install the GitHub CLI
-(<https://cli.github.com>), then from this folder:
+The repo lives at `eliwilde/krill` on the `krill` branch. Enable Pages once,
+in **Settings → Pages → Source: deploy from branch `krill`, folder `/`**, or
+from the CLI:
 
 ```
-gh auth login
-gh repo create strata --public --source=. --push
-gh api -X POST repos/:owner/strata/pages -f "source[branch]=main" -f "source[path]=/"
+gh api -X POST repos/eliwilde/krill/pages -f "source[branch]=krill" -f "source[path]=/"
 ```
 
-The site lands at `https://<your-username>.github.io/strata/` within a minute
-or two. Because it's all static files at the repo root, no build config is
-needed. After any future change:
+The site lands at <https://eliwilde.github.io/krill/> within a minute or two.
+Because it's all static files at the repo root, no build config is needed.
+After any future change:
 
 ```
 git add -A && git commit -m "your message" && git push
@@ -99,9 +98,27 @@ Rebuild after changing a source or the tuning:
 node build-prompts.js
 ```
 
+### The closed-set rule
+
+Every hand-written prompt is a **closed set** — one whose full membership is
+small enough that ~30 entries genuinely covers it: 24 Greek letters, 50 state
+capitals, 12 South American countries, 9 parts of speech.
+
+That isn't a style preference, it's what keeps the scoring honest. Bedrock is
+meant to mean *you found something nobody else did*. On an open set — cheese
+(~1800 real answers), cocktail (~600), chess opening (~1300) — a 30-entry list
+covers 2–5%, so nearly every correct answer is unlisted and bedrock fires
+constantly. It stops being a reward and becomes the default.
+
+Open-set prompts were removed for exactly that reason. The ones that remain are
+either closed sets or backed by measured response data.
+
+Before adding a prompt, ask: *could this list plausibly hold most of the real
+answers?* If not, it belongs in `norms-prompts.js` or nowhere.
+
 ### Adding prompts
 
-149 prompts ship, which is about 21 runs before repeats. Append to `prompts.js`
+79 prompts ship, which is about 11 runs before repeats. Append to `prompts.js`
 (hand-written prompts only — `norms-prompts.js` is generated, don't edit it):
 
 ```js

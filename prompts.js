@@ -19,180 +19,32 @@
  * Anything not in any list scores BEDROCK (100). That means gibberish scores
  * max — deliberately. A dictionary check would punish real-but-obscure answers,
  * which is the exact opposite of the point.
+ *
+ * THE CLOSED-SET RULE
+ *
+ * Every prompt here is a CLOSED set: one whose full membership is small
+ * enough that ~30 entries genuinely covers it. 24 Greek letters, 50 state
+ * capitals, 12 South American countries, 9 parts of speech.
+ *
+ * That is not a stylistic preference, it is what makes the scoring honest.
+ * BEDROCK is supposed to mean "you found something nobody else did". On an
+ * OPEN set — cheese (~1800 real answers), cocktail (~600), chess opening
+ * (~1300) — a 30-entry list covers 2-5%, so almost every correct answer is
+ * unlisted and BEDROCK fires constantly. It stops being a reward and becomes
+ * the default. Open-set prompts were removed for exactly that reason.
+ *
+ * Before adding a prompt, ask: could this list plausibly contain most of the
+ * real answers? If not, it belongs in norms-prompts.js (backed by measured
+ * response data) or nowhere.
  */
 
 export const PROMPTS = [
-  // ============================ FOOD ============================
-  { q: "Name a noodle dish", cat: "food",
-    surface: ["ramen", "spaghetti", "pad thai", "lo mein", "mac and cheese"],
-    tooclever: ["pho", "udon", "carbonara", "chow mein", "soba"],
-    common: ["lasagna", "fettuccine alfredo", "yakisoba", "dan dan noodles", "japchae", "bolognese"],
-    good: ["laksa", "bibim guksu", "beef chow fun", "mie goreng", "hokkien mee", "tteokbokki"],
-    deep: ["khao soi", "zaru soba", "biang biang", "kuy teav", "cao lau", "pancit", "lagman", "shirataki"] },
-
-  { q: "Name a cheese", cat: "food",
-    surface: ["cheddar", "mozzarella", "parmesan", "swiss", "american"],
-    tooclever: ["brie", "gouda", "feta", "blue cheese", "gorgonzola"],
-    common: ["camembert", "provolone", "ricotta", "manchego", "havarti", "monterey jack"],
-    good: ["gruyere", "taleggio", "comte", "pecorino", "emmental", "halloumi", "mascarpone"],
-    deep: ["epoisses", "cabrales", "raclette", "morbier", "tete de moine", "caerphilly", "vacherin", "limburger"] },
-
-  { q: "Name a spice", cat: "food",
-    surface: ["cinnamon", "pepper", "salt", "paprika", "oregano"],
-    tooclever: ["cumin", "turmeric", "nutmeg", "cardamom", "saffron"],
-    common: ["coriander", "cloves", "ginger", "chili powder", "fennel", "allspice"],
-    good: ["star anise", "sumac", "fenugreek", "mace", "juniper", "caraway", "asafoetida"],
-    deep: ["grains of paradise", "nigella", "ajwain", "long pepper", "zedoary", "annatto", "galangal"] },
-
-  { q: "Name a cut of beef", cat: "food",
-    surface: ["ribeye", "sirloin", "filet mignon", "t-bone", "ground beef"],
-    tooclever: ["brisket", "flank", "new york strip", "chuck", "skirt"],
-    common: ["short rib", "tri tip", "hanger", "rump", "porterhouse", "round"],
-    good: ["flat iron", "denver", "picanha", "oxtail", "shank", "bavette", "chuck eye"],
-    deep: ["teres major", "spider steak", "merlot steak", "vegas strip", "sierra cut", "featherblade"] },
-
-  { q: "Name a type of bread", cat: "food",
-    surface: ["white bread", "sourdough", "baguette", "naan", "pita"],
-    tooclever: ["focaccia", "ciabatta", "brioche", "rye", "challah"],
-    common: ["cornbread", "bagel", "tortilla", "pumpernickel", "soda bread", "flatbread"],
-    good: ["injera", "lavash", "roti", "panettone", "stollen", "zwieback", "arepa"],
-    deep: ["borodinsky", "pandesal", "bammy", "khachapuri", "malooga", "barbari", "melonpan"] },
-
-  { q: "Name a cooking method", cat: "food",
-    surface: ["baking", "frying", "boiling", "grilling", "roasting"],
-    tooclever: ["sauteing", "steaming", "braising", "poaching", "broiling"],
-    common: ["searing", "simmering", "blanching", "smoking", "stewing", "deep frying", "pickling"],
-    good: ["sous vide", "confit", "en papillote", "flambe", "caramelizing", "curing", "tempering"],
-    deep: ["nixtamalization", "spherification", "larding", "barding", "koji fermentation", "smothering", "plank cooking", "pit roasting"] },
-
-  { q: "Name a fruit", cat: "food",
-    surface: ["apple", "banana", "orange", "grape", "strawberry"],
-    tooclever: ["mango", "pineapple", "kiwi", "watermelon", "peach"],
-    common: ["pomegranate", "papaya", "guava", "apricot", "fig", "lychee", "cantaloupe"],
-    good: ["persimmon", "dragonfruit", "passionfruit", "starfruit", "quince", "durian", "jackfruit"],
-    deep: ["cherimoya", "mangosteen", "rambutan", "loquat", "feijoa", "salak", "soursop", "medlar", "jabuticaba"] },
-
-  { q: "Name a cocktail", cat: "food",
-    surface: ["margarita", "martini", "mojito", "old fashioned", "daiquiri"],
-    tooclever: ["negroni", "manhattan", "cosmopolitan", "bloody mary", "pina colada"],
-    common: ["whiskey sour", "gin and tonic", "moscow mule", "mai tai", "sidecar", "aperol spritz", "sazerac"],
-    good: ["boulevardier", "paloma", "corpse reviver", "last word", "vieux carre", "penicillin", "bee's knees"],
-    deep: ["hanky panky", "aviation", "jungle bird", "el presidente", "brandy crusta", "remember the maine", "tuxedo", "blood and sand"] },
-
-  // ============================ GEOGRAPHY ============================
   { q: "Name a country in Africa", cat: "geo",
     surface: ["egypt", "south africa", "kenya", "nigeria", "morocco"],
     tooclever: ["ethiopia", "ghana", "tanzania", "algeria", "uganda"],
     common: ["senegal", "zimbabwe", "sudan", "cameroon", "zambia", "tunisia", "angola"],
     good: ["burkina faso", "malawi", "benin", "gabon", "mauritania", "lesotho", "eritrea"],
     deep: ["comoros", "sao tome", "djibouti", "guinea-bissau", "burundi", "equatorial guinea", "eswatini"] },
-
-  { q: "Name a capital city", cat: "geo",
-    surface: ["paris", "london", "tokyo", "washington", "rome"],
-    tooclever: ["ottawa", "canberra", "brasilia", "wellington", "bern"],
-    common: ["vienna", "oslo", "lisbon", "warsaw", "nairobi", "hanoi", "helsinki"],
-    good: ["tbilisi", "ljubljana", "montevideo", "asuncion", "chisinau", "vientiane", "tirana"],
-    deep: ["ouagadougou", "thimphu", "nuku'alofa", "yamoussoukro", "bandar seri begawan", "port vila", "gitega"] },
-
-  { q: "Name a river", cat: "geo",
-    surface: ["nile", "amazon", "mississippi", "thames", "danube"],
-    tooclever: ["yangtze", "ganges", "rhine", "volga", "seine"],
-    common: ["mekong", "euphrates", "colorado", "congo", "tigris", "indus", "rio grande"],
-    good: ["irrawaddy", "zambezi", "orinoco", "yukon", "brahmaputra", "murray", "loire"],
-    deep: ["limpopo", "kolyma", "ob", "syr darya", "magdalena", "ussuri", "chao phraya", "tocantins"] },
-
-  { q: "Name a mountain range", cat: "geo",
-    surface: ["himalayas", "rockies", "alps", "andes", "appalachians"],
-    tooclever: ["urals", "pyrenees", "sierra nevada", "atlas", "caucasus"],
-    common: ["carpathians", "cascades", "apennines", "balkans", "great dividing range"],
-    good: ["tian shan", "karakoram", "drakensberg", "hindu kush", "altai", "zagros", "pennines"],
-    deep: ["pamirs", "annamite", "verkhoyansk", "sayan", "aravalli", "bale", "brooks range"] },
-
-  { q: "Name an island country", cat: "geo",
-    surface: ["japan", "iceland", "cuba", "ireland", "madagascar"],
-    tooclever: ["new zealand", "philippines", "jamaica", "sri lanka", "indonesia"],
-    common: ["fiji", "malta", "cyprus", "bahamas", "maldives", "haiti", "taiwan"],
-    good: ["vanuatu", "seychelles", "comoros", "grenada", "dominica", "samoa", "tonga"],
-    deep: ["kiribati", "tuvalu", "nauru", "palau", "sao tome and principe", "micronesia", "niue"] },
-
-  // ============================ NATURE ============================
-  { q: "Name a flightless bird", cat: "nature",
-    surface: ["penguin", "ostrich", "emu", "kiwi", "chicken"],
-    tooclever: ["dodo", "cassowary", "rhea"],
-    common: ["kakapo", "takahe", "weka", "moa", "steamer duck"],
-    good: ["kagu", "flightless cormorant", "inaccessible island rail", "guam rail"],
-    deep: ["elephant bird", "great auk", "titicaca grebe", "campbell teal", "kiwi pukupuku"] },
-
-  { q: "Name a venomous animal", cat: "nature",
-    surface: ["snake", "scorpion", "spider", "cobra", "rattlesnake"],
-    tooclever: ["box jellyfish", "black widow", "platypus", "stingray"],
-    common: ["stonefish", "lionfish", "gila monster", "pufferfish", "centipede", "taipan"],
-    good: ["blue-ringed octopus", "cone snail", "slow loris", "bullet ant", "hooded pitohui"],
-    deep: ["irukandji", "deathstalker", "sydney funnel-web", "greater blind snake", "shrew", "solenodon"] },
-
-  { q: "Name a big cat", cat: "nature",
-    surface: ["lion", "tiger", "leopard", "cheetah", "jaguar"],
-    tooclever: ["cougar", "panther", "puma", "snow leopard", "lynx"],
-    common: ["bobcat", "ocelot", "caracal", "serval", "clouded leopard"],
-    good: ["margay", "jaguarundi", "fishing cat", "sand cat", "pallas's cat"],
-    deep: ["kodkod", "oncilla", "flat-headed cat", "marbled cat", "andean mountain cat", "rusty-spotted cat"] },
-
-  { q: "Name a tree", cat: "nature",
-    surface: ["oak", "pine", "maple", "palm", "birch"],
-    tooclever: ["willow", "redwood", "sequoia", "baobab", "eucalyptus"],
-    common: ["cedar", "aspen", "beech", "cypress", "sycamore", "mahogany", "elm"],
-    good: ["ginkgo", "banyan", "jacaranda", "hornbeam", "tamarack", "kapok", "yew"],
-    deep: ["dragon blood", "bristlecone pine", "wollemi pine", "monkey puzzle", "quiver tree", "kauri"] },
-
-  { q: "Name a dinosaur", cat: "nature",
-    surface: ["t-rex", "velociraptor", "stegosaurus", "triceratops", "brachiosaurus"],
-    tooclever: ["pterodactyl", "spinosaurus", "ankylosaurus", "diplodocus", "allosaurus"],
-    common: ["brontosaurus", "iguanodon", "pachycephalosaurus", "parasaurolophus", "archaeopteryx"],
-    good: ["carnotaurus", "therizinosaurus", "deinonychus", "giganotosaurus", "compsognathus", "dilophosaurus"],
-    deep: ["microraptor", "yutyrannus", "shunosaurus", "amargasaurus", "nigersaurus", "mononykus", "borealopelta"] },
-
-  { q: "Name a breed of dog", cat: "nature",
-    surface: ["labrador", "german shepherd", "poodle", "bulldog", "golden retriever"],
-    tooclever: ["husky", "chihuahua", "dachshund", "beagle", "rottweiler"],
-    common: ["corgi", "boxer", "great dane", "doberman", "shih tzu", "border collie", "pug"],
-    good: ["vizsla", "weimaraner", "basenji", "shar pei", "akita", "whippet", "samoyed"],
-    deep: ["azawakh", "xoloitzcuintli", "kooikerhondje", "lagotto romagnolo", "otterhound", "puli", "schipperke", "mudi"] },
-
-  { q: "Name an insect", cat: "nature",
-    surface: ["ant", "bee", "butterfly", "mosquito", "fly"],
-    tooclever: ["beetle", "dragonfly", "grasshopper", "cockroach", "wasp"],
-    common: ["cricket", "moth", "termite", "ladybug", "praying mantis", "cicada", "firefly"],
-    good: ["weevil", "mayfly", "lacewing", "earwig", "stick insect", "aphid", "silverfish"],
-    deep: ["antlion", "caddisfly", "thrips", "springtail", "dobsonfly", "treehopper", "scorpionfly", "stonefly"] },
-
-  { q: "Name a deep sea creature", cat: "nature",
-    surface: ["anglerfish", "squid", "octopus", "jellyfish", "shark"],
-    tooclever: ["giant squid", "viperfish", "blobfish", "lanternfish", "sea cucumber"],
-    common: ["gulper eel", "vampire squid", "goblin shark", "frilled shark", "hatchetfish", "tube worm"],
-    good: ["dumbo octopus", "barreleye", "yeti crab", "sea pig", "fangtooth", "chimaera", "amphipod"],
-    deep: ["bathynomus", "stoplight loosejaw", "sea angel", "bone-eating snot flower", "pelican eel", "ping pong tree sponge", "faceless cusk"] },
-
-  // ============================ SCIENCE ============================
-  { q: "Name a chemical element", cat: "sci",
-    surface: ["oxygen", "hydrogen", "carbon", "gold", "iron"],
-    tooclever: ["helium", "neon", "uranium", "mercury", "plutonium"],
-    common: ["sodium", "calcium", "zinc", "lithium", "argon", "silicon", "titanium"],
-    good: ["tungsten", "cobalt", "iodine", "bismuth", "palladium", "selenium", "rubidium"],
-    deep: ["yttrium", "hafnium", "praseodymium", "technetium", "dysprosium", "seaborgium", "roentgenium", "thulium"] },
-
-  { q: "Name a bone in the human body", cat: "sci",
-    surface: ["skull", "femur", "rib", "spine", "jaw"],
-    tooclever: ["tibia", "humerus", "pelvis", "sternum", "clavicle"],
-    common: ["fibula", "radius", "ulna", "scapula", "patella", "vertebra", "mandible"],
-    good: ["metatarsal", "phalanx", "calcaneus", "sacrum", "coccyx", "hyoid", "talus"],
-    deep: ["stapes", "incus", "malleus", "ethmoid", "vomer", "lunate", "pisiform", "sphenoid"] },
-
-  { q: "Name a constellation", cat: "sci",
-    surface: ["orion", "big dipper", "ursa major", "leo", "scorpio"],
-    tooclever: ["cassiopeia", "andromeda", "gemini", "taurus", "pegasus"],
-    common: ["draco", "lyra", "cygnus", "aquarius", "perseus", "hercules", "centaurus"],
-    good: ["cepheus", "bootes", "auriga", "carina", "hydra", "corvus", "lupus"],
-    deep: ["camelopardalis", "reticulum", "horologium", "microscopium", "caelum", "fornax", "norma", "antlia"] },
 
   { q: "Name a moon in our solar system", cat: "sci",
     surface: ["the moon", "europa", "titan", "io", "ganymede"],
@@ -201,69 +53,12 @@ export const PROMPTS = [
     good: ["miranda", "ariel", "umbriel", "oberon", "titania", "hyperion", "nereid"],
     deep: ["amalthea", "himalia", "phoebe", "janus", "epimetheus", "proteus", "pandora", "prometheus"] },
 
-  { q: "Name a unit of measurement", cat: "sci",
-    surface: ["meter", "inch", "pound", "gram", "mile"],
-    tooclever: ["kelvin", "newton", "joule", "watt", "hertz"],
-    common: ["pascal", "ampere", "candela", "mole", "ohm", "volt", "knot"],
-    good: ["tesla", "weber", "siemens", "becquerel", "lumen", "sievert", "farad"],
-    deep: ["furlong", "hogshead", "parsec", "poise", "gilbert", "rood", "chain", "slug", "barn"] },
-
-  { q: "Name a branch of science", cat: "sci",
-    surface: ["biology", "chemistry", "physics", "astronomy", "geology"],
-    tooclever: ["psychology", "botany", "zoology", "ecology", "genetics"],
-    common: ["meteorology", "anatomy", "neuroscience", "paleontology", "microbiology", "seismology", "oceanography"],
-    good: ["epidemiology", "cytology", "virology", "entomology", "mycology", "herpetology", "cosmology"],
-    deep: ["speleology", "malacology", "palynology", "rheology", "tribology", "bryology", "carcinology", "vexillology"] },
-
-  { q: "Name a scientist", cat: "sci",
-    surface: ["einstein", "newton", "darwin", "tesla", "curie"],
-    tooclever: ["galileo", "hawking", "edison", "pasteur", "copernicus"],
-    common: ["mendel", "bohr", "faraday", "kepler", "feynman", "planck", "rosalind franklin"],
-    good: ["schrodinger", "heisenberg", "lavoisier", "boltzmann", "maxwell", "avogadro", "emmy noether"],
-    deep: ["dirac", "chandrasekhar", "barbara mcclintock", "leibniz", "vera rubin", "lise meitner", "ramanujan", "gell-mann"] },
-
-  { q: "Name a type of cloud formation or weather phenomenon", cat: "sci",
-    surface: ["tornado", "hurricane", "thunderstorm", "rainbow", "blizzard"],
-    tooclever: ["lightning", "hail", "el nino", "monsoon", "aurora"],
-    common: ["waterspout", "derecho", "haboob", "microburst", "fog bow", "sun dog", "jet stream"],
-    good: ["sprite", "st elmo's fire", "morning glory", "brocken spectre", "green flash", "fire whirl", "graupel"],
-    deep: ["elve", "blue jet", "gegenschein", "subsun", "mammatus outbreak", "heat burst", "snow roller", "diamond dust"] },
-
-  // ============================ HISTORY & CULTURE ============================
-  { q: "Name an ancient civilization", cat: "hist",
-    surface: ["egypt", "rome", "greece", "maya", "aztec"],
-    tooclever: ["inca", "mesopotamia", "babylon", "persia", "china"],
-    common: ["sumer", "carthage", "assyria", "phoenicia", "olmec", "indus valley", "byzantine"],
-    good: ["hittite", "minoan", "etruscan", "nubia", "parthia", "sassanid", "mycenaean"],
-    deep: ["elam", "urartu", "axum", "kush", "zapotec", "moche", "nabatean", "sogdiana", "dilmun"] },
-
   { q: "Name a Greek god", cat: "hist",
     surface: ["zeus", "poseidon", "hades", "athena", "apollo"],
     tooclever: ["ares", "hermes", "artemis", "aphrodite", "hera"],
     common: ["demeter", "dionysus", "hephaestus", "hestia", "persephone", "helios"],
     good: ["nyx", "hypnos", "nemesis", "hecate", "eros", "pan", "thanatos", "iris"],
     deep: ["erebus", "tartarus", "aether", "hemera", "moros", "phanes", "eurus", "asteria"] },
-
-  { q: "Name a war", cat: "hist",
-    surface: ["world war 2", "world war 1", "civil war", "vietnam war", "korean war"],
-    tooclever: ["cold war", "crusades", "hundred years war", "revolutionary war", "gulf war"],
-    common: ["napoleonic wars", "trojan war", "boer war", "punic wars", "thirty years war", "crimean war"],
-    good: ["peloponnesian war", "war of the roses", "spanish civil war", "russo-japanese war", "six-day war"],
-    deep: ["war of jenkins' ear", "chaco war", "winter war", "emu war", "pastry war", "toledo war", "banana wars"] },
-
-  { q: "Name a musical instrument", cat: "culture",
-    surface: ["guitar", "piano", "drums", "violin", "flute"],
-    tooclever: ["cello", "trumpet", "saxophone", "harp", "banjo"],
-    common: ["clarinet", "trombone", "accordion", "oboe", "bassoon", "ukulele", "mandolin"],
-    good: ["sitar", "theremin", "bagpipes", "harpsichord", "didgeridoo", "koto", "balalaika"],
-    deep: ["hurdy-gurdy", "nyckelharpa", "shakuhachi", "ondes martenot", "glass armonica", "sarrusophone", "duduk", "kora"] },
-
-  { q: "Name a board game", cat: "culture",
-    surface: ["monopoly", "chess", "checkers", "scrabble", "clue"],
-    tooclever: ["risk", "catan", "battleship", "connect four", "backgammon"],
-    common: ["go", "othello", "ticket to ride", "carcassonne", "pandemic", "mancala", "stratego"],
-    good: ["diplomacy", "agricola", "twilight struggle", "puerto rico", "azul", "shogi", "hive"],
-    deep: ["hnefatafl", "senet", "brass", "tigris and euphrates", "through the ages", "xiangqi", "go-moku", "royal game of ur"] },
 
   { q: "Name a US president", cat: "hist",
     surface: ["washington", "lincoln", "kennedy", "obama", "roosevelt"],
@@ -272,70 +67,12 @@ export const PROMPTS = [
     good: ["polk", "garfield", "harding", "coolidge", "taft", "mckinley", "van buren"],
     deep: ["millard fillmore", "franklin pierce", "chester arthur", "rutherford hayes", "james buchanan", "zachary taylor", "benjamin harrison", "john tyler"] },
 
-  { q: "Name an empire", cat: "hist",
-    surface: ["roman empire", "british empire", "ottoman empire", "mongol empire", "greek empire"],
-    tooclever: ["byzantine", "persian empire", "aztec empire", "inca empire", "russian empire"],
-    common: ["holy roman empire", "spanish empire", "french empire", "austro-hungarian", "mughal", "qing dynasty", "portuguese empire"],
-    good: ["achaemenid", "seleucid", "umayyad", "abbasid", "carolingian", "khmer empire", "songhai"],
-    deep: ["parthian", "kushan", "timurid", "safavid", "mali empire", "srivijaya", "hittite empire", "rashidun", "gupta"] },
-
-  { q: "Name a famous painting", cat: "culture",
-    surface: ["mona lisa", "starry night", "the scream", "last supper", "girl with a pearl earring"],
-    tooclever: ["guernica", "the persistence of memory", "american gothic", "the birth of venus", "nighthawks"],
-    common: ["water lilies", "the kiss", "sunflowers", "the night watch", "creation of adam", "the great wave"],
-    good: ["las meninas", "the garden of earthly delights", "the school of athens", "whistlers mother", "liberty leading the people"],
-    deep: ["the arnolfini portrait", "the raft of the medusa", "the ambassadors", "et in arcadia ego", "the anatomy lesson", "isenheim altarpiece"] },
-
-  { q: "Name a genre of music", cat: "culture",
-    surface: ["rock", "pop", "hip hop", "jazz", "country"],
-    tooclever: ["blues", "classical", "reggae", "metal", "electronic"],
-    common: ["funk", "soul", "punk", "folk", "r&b", "disco", "gospel"],
-    good: ["ska", "bossa nova", "bluegrass", "dubstep", "shoegaze", "afrobeat", "flamenco"],
-    deep: ["vaporwave", "gqom", "mathcore", "zydeco", "fado", "gamelan", "trip hop", "kwaito", "dungeon synth"] },
-
-  // ============================ SPORT ============================
-  { q: "Name an Olympic sport", cat: "sport",
-    surface: ["swimming", "running", "gymnastics", "basketball", "soccer"],
-    tooclever: ["fencing", "archery", "judo", "rowing", "diving"],
-    common: ["weightlifting", "boxing", "wrestling", "badminton", "taekwondo", "triathlon", "handball"],
-    good: ["pentathlon", "dressage", "water polo", "trampoline", "canoe slalom", "skeleton", "luge"],
-    deep: ["racewalking", "keirin", "nordic combined", "biathlon", "curling", "sport climbing", "madison", "omnium"] },
-
   { q: "Name a position in American football", cat: "sport",
     surface: ["quarterback", "running back", "wide receiver", "linebacker", "kicker"],
     tooclever: ["tight end", "cornerback", "safety", "punter", "center"],
     common: ["offensive tackle", "guard", "defensive end", "nose tackle", "fullback", "long snapper"],
     good: ["strong safety", "free safety", "slot receiver", "nickelback", "gunner", "h-back"],
     deep: ["dimeback", "wingback", "upback", "jack linebacker", "personal protector", "monster back"] },
-
-  { q: "Name a sport played with a ball", cat: "sport",
-    surface: ["soccer", "basketball", "baseball", "football", "tennis"],
-    tooclever: ["golf", "volleyball", "rugby", "cricket", "bowling"],
-    common: ["handball", "water polo", "squash", "lacrosse", "netball", "softball", "polo"],
-    good: ["hurling", "sepak takraw", "pelota", "bocce", "korfball", "futsal", "shinty"],
-    deep: ["cuju", "tchoukball", "kabaddi", "jai alai", "pallone", "calcio storico", "bandy", "knattleikr"] },
-
-  { q: "Name a tennis or racquet term", cat: "sport",
-    surface: ["serve", "ace", "love", "deuce", "match point"],
-    tooclever: ["volley", "backhand", "forehand", "let", "fault"],
-    common: ["lob", "smash", "drop shot", "break point", "tiebreak", "rally", "slice"],
-    good: ["passing shot", "approach shot", "half volley", "kick serve", "moonball", "shank"],
-    deep: ["tweener", "chip and charge", "bagel", "golden set", "hawkeye challenge", "foot fault", "swinging volley"] },
-
-  { q: "Name a Winter Olympic event", cat: "sport",
-    surface: ["figure skating", "skiing", "snowboarding", "hockey", "bobsled"],
-    tooclever: ["curling", "luge", "speed skating", "ski jumping", "biathlon"],
-    common: ["skeleton", "cross country skiing", "downhill", "slalom", "halfpipe", "moguls", "slopestyle"],
-    good: ["nordic combined", "super-g", "team pursuit", "aerials", "big air", "mass start", "ski cross"],
-    deep: ["monobob", "mixed doubles curling", "parallel giant slalom", "short track relay", "gundersen", "team sprint", "alpine combined"] },
-
-  // ============================ WORDS & LANGUAGE ============================
-  { q: "Name a language", cat: "words",
-    surface: ["english", "spanish", "french", "chinese", "german"],
-    tooclever: ["latin", "japanese", "arabic", "russian", "italian"],
-    common: ["hindi", "swahili", "korean", "portuguese", "dutch", "greek", "hebrew"],
-    good: ["tagalog", "farsi", "amharic", "tamil", "welsh", "basque", "quechua"],
-    deep: ["tuvan", "xhosa", "faroese", "guarani", "aymara", "inuktitut", "nahuatl", "malayalam", "sami"] },
 
   { q: "Name a Greek letter", cat: "words",
     surface: ["alpha", "beta", "omega", "delta", "pi"],
@@ -344,27 +81,12 @@ export const PROMPTS = [
     good: ["upsilon", "xi", "omicron", "eta", "nu", "psi", "iota"],
     deep: ["digamma", "koppa", "sampi", "stigma", "heta", "san"] },
 
-  // ============================ MYTH & FICTION ============================
   { q: "Name a Norse god", cat: "myth",
     surface: ["thor", "odin", "loki", "freya", "hel"],
     tooclever: ["balder", "heimdall", "tyr", "frigg", "njord"],
     common: ["freyr", "sif", "bragi", "idunn", "vidar", "ullr", "skadi"],
     good: ["forseti", "vali", "hodr", "gefjon", "eir", "nanna", "aegir"],
     deep: ["kvasir", "hoenir", "lofn", "syn", "var", "fulla", "sjofn", "mimir", "gullveig"] },
-
-  { q: "Name a legendary sword or weapon", cat: "myth",
-    surface: ["excalibur", "mjolnir", "trident", "lightsaber", "master sword"],
-    tooclever: ["gungnir", "durandal", "sting", "andúril", "glamdring"],
-    common: ["gram", "tyrfing", "kusanagi", "joyeuse", "caladbolg", "aegis"],
-    good: ["hrunting", "naegling", "balmung", "zulfiqar", "clarent", "laevateinn", "gae bolg"],
-    deep: ["dainsleif", "ridill", "hofud", "angurvadal", "skofnung", "kladenets", "sharur", "ascalon"] },
-
-  { q: "Name a mythical creature", cat: "myth",
-    surface: ["dragon", "unicorn", "griffin", "mermaid", "phoenix"],
-    tooclever: ["centaur", "minotaur", "kraken", "sphinx", "cyclops"],
-    common: ["chimera", "hydra", "pegasus", "banshee", "troll", "yeti", "basilisk"],
-    good: ["wendigo", "kelpie", "selkie", "golem", "manticore", "kitsune", "djinn"],
-    deep: ["nuckelavee", "bunyip", "qilin", "encantado", "jorogumo", "alkonost", "tarasque", "baku"] },
 
   { q: "Name a Shakespeare play", cat: "culture",
     surface: ["romeo and juliet", "hamlet", "macbeth", "julius caesar", "othello"],
@@ -373,42 +95,6 @@ export const PROMPTS = [
     good: ["coriolanus", "cymbeline", "titus andronicus", "measure for measure", "pericles", "timon of athens"],
     deep: ["troilus and cressida", "king john", "the two noble kinsmen", "love's labour's lost", "edward iii", "henry viii"] },
 
-  // ============================ MODERN ============================
-  { q: "Name a programming language", cat: "tech",
-    surface: ["python", "javascript", "java", "c++", "html"],
-    tooclever: ["rust", "go", "ruby", "swift", "typescript"],
-    common: ["php", "kotlin", "scala", "perl", "matlab", "r", "c#"],
-    good: ["haskell", "elixir", "clojure", "lua", "fortran", "cobol", "erlang", "julia"],
-    deep: ["prolog", "smalltalk", "ocaml", "forth", "apl", "brainfuck", "zig", "nim", "racket"] },
-
-  { q: "Name a car manufacturer", cat: "tech",
-    surface: ["ford", "toyota", "honda", "bmw", "tesla"],
-    tooclever: ["ferrari", "lamborghini", "porsche", "mercedes", "volkswagen"],
-    common: ["subaru", "mazda", "volvo", "jaguar", "peugeot", "hyundai", "fiat"],
-    good: ["bugatti", "koenigsegg", "lancia", "alfa romeo", "citroen", "skoda", "saab"],
-    deep: ["pagani", "spyker", "hispano-suiza", "wiesmann", "morgan", "datsun", "tvr", "gumpert"] },
-
-  { q: "Name a social media platform", cat: "tech",
-    surface: ["facebook", "instagram", "twitter", "tiktok", "youtube"],
-    tooclever: ["reddit", "snapchat", "linkedin", "pinterest", "discord"],
-    common: ["tumblr", "twitch", "whatsapp", "telegram", "myspace", "vine", "threads"],
-    good: ["mastodon", "bluesky", "weibo", "vk", "line", "wechat", "clubhouse"],
-    deep: ["friendster", "orkut", "diaspora", "ello", "xanga", "hi5", "bebo", "nextdoor", "gab"] },
-
-  { q: "Name a video game console", cat: "tech",
-    surface: ["playstation", "xbox", "nintendo switch", "gameboy", "wii"],
-    tooclever: ["nintendo 64", "sega genesis", "atari 2600", "gamecube", "dreamcast"],
-    common: ["snes", "nes", "ps2", "sega saturn", "psp", "nintendo ds", "steam deck"],
-    good: ["turbografx-16", "neo geo", "game gear", "virtual boy", "wonderswan", "3do", "jaguar"],
-    deep: ["magnavox odyssey", "colecovision", "intellivision", "vectrex", "fm towns marty", "pc-fx", "n-gage", "ouya"] },
-
-  { q: "Name a website or web company", cat: "tech",
-    surface: ["google", "amazon", "wikipedia", "netflix", "ebay"],
-    tooclever: ["github", "stack overflow", "spotify", "airbnb", "uber"],
-    common: ["craigslist", "dropbox", "shopify", "stripe", "yelp", "imdb", "etsy"],
-    good: ["digg", "delicious", "geocities", "altavista", "askjeeves", "napster", "slashdot"],
-    deep: ["fark", "metafilter", "newgrounds", "angelfire", "tripod", "livejournal", "usenet", "webring"] },
-
   { q: "Name a unit of digital storage or data", cat: "tech",
     surface: ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"],
     tooclever: ["bit", "petabyte", "exabyte", "nibble"],
@@ -416,84 +102,12 @@ export const PROMPTS = [
     good: ["tebibyte", "pebibyte", "exbibyte", "octet", "dword", "qword"],
     deep: ["ronnabyte", "quettabyte", "yobibyte", "zebibyte", "crumb", "hextet", "shannon", "hartley"] },
 
-  // ============================ MISC FACTUAL ============================
-  { q: "Name a gemstone", cat: "misc",
-    surface: ["diamond", "ruby", "emerald", "sapphire", "pearl"],
-    tooclever: ["opal", "amethyst", "topaz", "jade", "turquoise"],
-    common: ["garnet", "aquamarine", "peridot", "onyx", "citrine", "lapis lazuli", "moonstone"],
-    good: ["tanzanite", "tourmaline", "spinel", "zircon", "alexandrite", "malachite", "obsidian"],
-    deep: ["benitoite", "painite", "grandidierite", "musgravite", "taaffeite", "jeremejevite", "poudretteite"] },
-
-  { q: "Name a type of cloud", cat: "misc",
-    surface: ["cumulus", "cirrus", "stratus", "storm cloud", "nimbus"],
-    tooclever: ["cumulonimbus", "altocumulus", "nimbostratus"],
-    common: ["stratocumulus", "altostratus", "cirrostratus", "cirrocumulus"],
-    good: ["lenticular", "mammatus", "noctilucent", "contrail", "fractus", "pileus"],
-    deep: ["asperitas", "kelvin-helmholtz", "arcus", "virga", "nacreous", "castellanus", "volutus"] },
-
-  { q: "Name a chess opening", cat: "misc",
-    surface: ["sicilian defense", "queen's gambit", "king's gambit", "italian game"],
-    tooclever: ["ruy lopez", "french defense", "caro-kann", "english opening", "london system"],
-    common: ["king's indian", "nimzo-indian", "scandinavian", "pirc", "slav defense", "scotch game"],
-    good: ["grunfeld", "benoni", "alekhine's defense", "catalan", "dutch defense", "vienna game"],
-    deep: ["budapest gambit", "latvian gambit", "grob's attack", "orangutan", "elephant gambit", "bongcloud", "trompowsky"] },
-
-  { q: "Name a knot", cat: "misc",
-    surface: ["bow", "square knot", "slip knot", "double knot"],
-    tooclever: ["bowline", "figure eight", "clove hitch", "half hitch"],
-    common: ["sheet bend", "fisherman's knot", "taut-line hitch", "reef knot", "timber hitch"],
-    good: ["prusik", "alpine butterfly", "monkey's fist", "carrick bend", "sheepshank", "munter hitch"],
-    deep: ["zeppelin bend", "constrictor knot", "icicle hitch", "trucker's hitch", "blake's hitch", "ashley's bend"] },
-
-  { q: "Name a sailing or ship term", cat: "misc",
-    surface: ["anchor", "mast", "deck", "sail", "bow", "stern"],
-    tooclever: ["starboard", "port", "helm", "rudder", "keel", "hull"],
-    common: ["galley", "bulkhead", "boom", "jib", "rigging", "aft", "bilge"],
-    good: ["mizzen", "spinnaker", "gunwale", "transom", "forecastle", "windlass", "capstan"],
-    deep: ["futtock", "orlop", "binnacle", "mainsheet traveller", "baggywrinkle", "scuttlebutt", "bobstay", "crosstrees"] },
-
-  { q: "Name a fictional planet", cat: "myth",
-    surface: ["tatooine", "krypton", "pandora", "vulcan", "arrakis"],
-    tooclever: ["coruscant", "hoth", "endor", "naboo", "gallifrey"],
-    common: ["dagobah", "mustafar", "romulus", "caprica", "magrathea", "solaris"],
-    good: ["trantor", "giedi prime", "helliconia", "lusitania", "ringworld", "mongo", "perelandra"],
-    deep: ["hyperion", "rakhat", "camazotz", "athshe", "jinx", "chthon", "kregen", "majipoor"] },
-
-  { q: "Name a philosopher", cat: "hist",
-    surface: ["socrates", "plato", "aristotle", "nietzsche", "descartes"],
-    tooclever: ["kant", "marx", "confucius", "freud", "sartre"],
-    common: ["hume", "locke", "hegel", "spinoza", "rousseau", "voltaire", "camus"],
-    good: ["kierkegaard", "schopenhauer", "wittgenstein", "foucault", "heidegger", "leibniz", "aquinas"],
-    deep: ["quine", "zhuangzi", "averroes", "avicenna", "plotinus", "pyrrho", "levinas", "peirce", "anaximander"] },
-
-  { q: "Name a currency", cat: "misc",
-    surface: ["dollar", "euro", "pound", "yen", "peso"],
-    tooclever: ["rupee", "yuan", "franc", "won", "ruble"],
-    common: ["real", "rand", "lira", "shekel", "dinar", "krona", "baht"],
-    good: ["ringgit", "forint", "zloty", "dirham", "kwacha", "taka", "leu"],
-    deep: ["ngultrum", "pula", "lilangeni", "ouguiya", "vatu", "dalasi", "kyat", "tugrik", "manat"] },
-
-  { q: "Name a fabric", cat: "misc",
-    surface: ["cotton", "silk", "wool", "denim", "leather"],
-    tooclever: ["linen", "velvet", "satin", "polyester", "cashmere"],
-    common: ["corduroy", "tweed", "chiffon", "flannel", "suede", "canvas", "lace"],
-    good: ["taffeta", "organza", "jacquard", "seersucker", "gabardine", "poplin", "damask"],
-    deep: ["dupioni", "grosgrain", "faille", "barathea", "batiste", "crepe de chine", "shantung", "moleskin"] },
-
-  // ==================== WORDS & LANGUAGE (ENGLISH) ====================
   { q: "Name a punctuation mark", cat: "words",
     surface: ["period", "comma", "question mark", "exclamation point", "apostrophe"],
     tooclever: ["semicolon", "colon", "hyphen", "quotation mark", "dash"],
     common: ["parenthesis", "ellipsis", "bracket", "slash", "asterisk", "ampersand", "brace"],
     good: ["en dash", "em dash", "interrobang", "pilcrow", "guillemet", "tilde", "solidus"],
     deep: ["obelus", "manicule", "hedera", "octothorpe", "diple", "asterism", "percontation point", "irony mark"] },
-
-  { q: "Name a figure of speech", cat: "words",
-    surface: ["metaphor", "simile", "hyperbole", "personification", "irony"],
-    tooclever: ["alliteration", "onomatopoeia", "oxymoron", "idiom", "euphemism"],
-    common: ["sarcasm", "pun", "analogy", "paradox", "allusion", "understatement", "assonance"],
-    good: ["synecdoche", "metonymy", "litotes", "chiasmus", "anaphora", "zeugma", "apostrophe"],
-    deep: ["antanaclasis", "hypallage", "polyptoton", "epizeuxis", "syllepsis", "aposiopesis", "paraprosdokian", "hendiadys"] },
 
   { q: "Name a part of speech", cat: "words",
     surface: ["noun", "verb", "adjective", "adverb", "pronoun"],
@@ -502,76 +116,12 @@ export const PROMPTS = [
     good: ["copula", "quantifier", "expletive", "predeterminer", "modal verb", "clitic"],
     deep: ["adposition", "postposition", "classifier", "evidential", "converb", "ideophone", "circumposition"] },
 
-  { q: "Name a collective noun for animals", cat: "words",
-    surface: ["herd", "flock", "pack", "school", "swarm"],
-    tooclever: ["pride", "murder", "pod", "colony", "gaggle"],
-    common: ["litter", "hive", "troop", "nest", "shoal", "brood", "drove"],
-    good: ["murmuration", "parliament", "unkindness", "bloat", "crash", "skulk", "cackle"],
-    deep: ["wisdom", "shrewdness", "prickle", "leap", "rhumba", "zeal", "ostentation", "charm", "bask"] },
-
-  { q: "Name a palindrome", cat: "words",
-    surface: ["racecar", "level", "mom", "dad", "noon"],
-    tooclever: ["kayak", "radar", "civic", "rotor", "madam"],
-    common: ["eye", "wow", "pop", "refer", "solos", "stats", "tenet"],
-    good: ["deified", "rotator", "repaper", "redivider", "detartrated", "malayalam"],
-    deep: ["tattarrattat", "saippuakivikauppias", "aibohphobia", "releveler", "murdrum", "semordnilap"] },
-
-  { q: "Name a word for a fear (a phobia)", cat: "words",
-    surface: ["arachnophobia", "claustrophobia", "acrophobia", "agoraphobia"],
-    tooclever: ["xenophobia", "hydrophobia", "homophobia", "necrophobia", "nyctophobia"],
-    common: ["ophidiophobia", "trypophobia", "thanatophobia", "aerophobia", "mysophobia", "glossophobia"],
-    good: ["emetophobia", "coulrophobia", "astraphobia", "cynophobia", "hemophobia", "tokophobia"],
-    deep: ["hippopotomonstrosesquippedaliophobia", "arithmophobia", "pogonophobia", "chionophobia", "ablutophobia", "nomophobia", "koumpounophobia"] },
-
-  { q: "Name a word that is its own opposite", cat: "words",
-    surface: ["sanction", "dust", "left", "screen"],
-    tooclever: ["cleave", "oversight", "bolt", "trim", "seed"],
-    common: ["fast", "weather", "clip", "custom", "strike", "buckle", "citation"],
-    good: ["apology", "peruse", "table", "consult", "garnish", "off", "rent"],
-    deep: ["nonplussed", "quiddity", "hew", "moot", "ravel", "putative", "shank", "handicap"] },
-
-  { q: "Name a prefix", cat: "words",
-    surface: ["un", "re", "pre", "dis", "anti"],
-    tooclever: ["sub", "super", "inter", "mis", "non"],
-    common: ["trans", "over", "under", "semi", "mono", "poly", "auto"],
-    good: ["hypo", "hyper", "peri", "ambi", "circum", "retro", "quasi"],
-    deep: ["cata", "eu", "dys", "meta", "para", "endo", "exo", "proto", "pseudo"] },
-
-  { q: "Name a word ending in -nym", cat: "words",
-    surface: ["synonym", "antonym", "acronym", "homonym", "pseudonym"],
-    tooclever: ["homophone", "eponym", "anonymous", "toponym"],
-    common: ["hypernym", "hyponym", "patronym", "metonym", "demonym"],
-    good: ["meronym", "holonym", "retronym", "autonym", "exonym", "contronym", "heteronym"],
-    deep: ["capitonym", "tautonym", "backronym", "aptronym", "oronym", "caconym", "endonym"] },
-
-  // ==================== GEOGRAPHY (EXPANDED) ====================
-  { q: "Name a desert", cat: "geo",
-    surface: ["sahara", "gobi", "mojave", "kalahari", "arabian"],
-    tooclever: ["atacama", "death valley", "antarctic", "sonoran", "namib"],
-    common: ["chihuahuan", "thar", "great basin", "patagonian", "syrian", "karakum", "painted desert"],
-    good: ["taklamakan", "simpson", "great victoria", "dasht-e kavir", "nubian", "kyzylkum", "negev"],
-    deep: ["rub al khali", "danakil", "lut", "gibson", "ordos", "registan", "sechura", "chalbi"] },
-
-  { q: "Name a sea", cat: "geo",
-    surface: ["mediterranean", "red sea", "dead sea", "caribbean", "black sea"],
-    tooclever: ["baltic", "north sea", "caspian", "aegean", "coral sea"],
-    common: ["arabian sea", "bering", "adriatic", "south china sea", "tasman", "barents", "ionian"],
-    good: ["sargasso", "andaman", "laccadive", "okhotsk", "celebes", "sulu", "weddell", "beaufort"],
-    deep: ["laptev", "chukchi", "banda", "arafura", "ceram", "bismarck", "alboran", "marmara", "kara"] },
-
   { q: "Name a landlocked country", cat: "geo",
     surface: ["switzerland", "austria", "mongolia", "nepal", "bolivia"],
     tooclever: ["afghanistan", "hungary", "paraguay", "kazakhstan", "czech republic"],
     common: ["laos", "zambia", "zimbabwe", "belarus", "serbia", "slovakia", "uganda"],
     good: ["bhutan", "chad", "mali", "niger", "rwanda", "burundi", "moldova", "armenia"],
     deep: ["liechtenstein", "san marino", "andorra", "lesotho", "eswatini", "turkmenistan", "tajikistan", "south sudan"] },
-
-  { q: "Name a volcano", cat: "geo",
-    surface: ["vesuvius", "mount fuji", "krakatoa", "etna", "mount st helens"],
-    tooclever: ["kilauea", "yellowstone", "popocatepetl", "mauna loa", "stromboli"],
-    common: ["pinatubo", "eyjafjallajokull", "cotopaxi", "mount rainier", "santorini", "merapi", "mount pelee"],
-    good: ["tambora", "nyiragongo", "erebus", "ojos del salado", "sakurajima", "villarrica", "teide"],
-    deep: ["toba", "laki", "ol doinyo lengai", "taal", "hekla", "katla", "novarupta", "masaya"] },
 
   { q: "Name a US state capital", cat: "geo",
     surface: ["sacramento", "austin", "denver", "boston", "atlanta"],
@@ -580,27 +130,6 @@ export const PROMPTS = [
     good: ["pierre", "bismarck", "helena", "montpelier", "augusta", "topeka", "cheyenne"],
     deep: ["juneau", "frankfort", "annapolis", "dover", "jefferson city", "tallahassee", "carson city", "harrisburg"] },
 
-  { q: "Name a strait or channel", cat: "geo",
-    surface: ["english channel", "strait of gibraltar", "bering strait", "panama canal", "suez canal"],
-    tooclever: ["bosphorus", "strait of hormuz", "strait of magellan", "dardanelles"],
-    common: ["strait of malacca", "drake passage", "cook strait", "bass strait", "danish straits"],
-    good: ["kattegat", "skagerrak", "kerch strait", "sunda strait", "palk strait", "denmark strait"],
-    deep: ["bab-el-mandeb", "lombok strait", "makassar strait", "tsugaru", "kara strait", "nares strait", "torres strait"] },
-
-  { q: "Name a lake", cat: "geo",
-    surface: ["lake superior", "lake michigan", "loch ness", "great salt lake", "lake tahoe"],
-    tooclever: ["lake baikal", "lake victoria", "caspian sea", "lake titicaca", "dead sea"],
-    common: ["lake erie", "lake ontario", "lake huron", "lake geneva", "lake como", "lake tanganyika", "great bear lake"],
-    good: ["lake malawi", "lake ladoga", "lake balaton", "lake maracaibo", "lake nasser", "lake vostok", "lake winnipeg"],
-    deep: ["lake turkana", "lake toba", "issyk-kul", "lake eyre", "lake urmia", "lake taupo", "lake chad", "qinghai lake"] },
-
-  { q: "Name a peninsula", cat: "geo",
-    surface: ["florida", "italy", "korea", "arabia", "scandinavia"],
-    tooclever: ["iberian", "balkan", "baja california", "crimea", "yucatan"],
-    common: ["anatolia", "kamchatka", "sinai", "cape cod", "malay peninsula", "jutland", "indochina"],
-    good: ["kola", "olympic", "gaspe", "istria", "peloponnese", "chukotka", "eyre peninsula"],
-    deep: ["taymyr", "banks", "melville", "zapata", "musandam", "nicoya", "guajira", "cape york"] },
-
   { q: "Name a country in South America", cat: "geo",
     surface: ["brazil", "argentina", "chile", "peru", "colombia"],
     tooclever: ["venezuela", "ecuador", "bolivia", "uruguay", "paraguay"],
@@ -608,95 +137,10 @@ export const PROMPTS = [
     good: ["french guiana"],
     deep: ["falkland islands", "south georgia"] },
 
-  { q: "Name a world city with over 10 million people", cat: "geo",
-    surface: ["tokyo", "new york", "london", "shanghai", "mumbai"],
-    tooclever: ["delhi", "beijing", "sao paulo", "mexico city", "cairo"],
-    common: ["istanbul", "lagos", "karachi", "dhaka", "buenos aires", "manila", "moscow"],
-    good: ["kinshasa", "chongqing", "tianjin", "lahore", "bangalore", "chennai", "bogota"],
-    deep: ["shenzhen", "chengdu", "hyderabad", "luanda", "ahmedabad", "guangzhou", "wuhan", "surat"] },
-
-  { q: "Name a time zone", cat: "geo",
-    surface: ["eastern", "pacific", "central", "mountain", "gmt"],
-    tooclever: ["utc", "greenwich mean time", "eastern standard time", "coordinated universal time"],
-    common: ["cet", "jst", "ist", "aest", "pst", "bst", "cst"],
-    good: ["newfoundland time", "hawaii-aleutian", "moscow time", "gulf standard time", "west africa time"],
-    deep: ["chatham time", "lord howe time", "nepal time", "marquesas time", "eucla time", "line islands time"] },
-
-  // ==================== HEALTH & FITNESS ====================
-  { q: "Name a muscle in the human body", cat: "health",
-    surface: ["bicep", "tricep", "abs", "quad", "hamstring"],
-    tooclever: ["deltoid", "pectoral", "glute", "calf", "trapezius"],
-    common: ["latissimus dorsi", "oblique", "soleus", "gastrocnemius", "rhomboid", "forearm", "rectus abdominis"],
-    good: ["serratus anterior", "erector spinae", "psoas", "adductor", "infraspinatus", "sartorius", "brachialis"],
-    deep: ["gracilis", "piriformis", "supraspinatus", "teres minor", "vastus intermedius", "pronator teres", "tensor fasciae latae", "levator scapulae"] },
-
-  { q: "Name a compound lift", cat: "health",
-    surface: ["squat", "deadlift", "bench press", "pull up", "push up"],
-    tooclever: ["overhead press", "row", "lunge", "dip", "clean"],
-    common: ["front squat", "romanian deadlift", "power clean", "snatch", "chin up", "hip thrust"],
-    good: ["clean and jerk", "sumo deadlift", "zercher squat", "pendlay row", "push press", "good morning"],
-    deep: ["jefferson deadlift", "anderson squat", "hang snatch", "landmine press", "hack squat", "trap bar deadlift", "split jerk"] },
-
-  { q: "Name a vitamin or mineral", cat: "health",
-    surface: ["vitamin c", "vitamin d", "iron", "calcium", "vitamin a"],
-    tooclever: ["vitamin b12", "magnesium", "zinc", "potassium", "omega 3"],
-    common: ["folate", "vitamin e", "vitamin k", "sodium", "phosphorus", "niacin", "thiamine"],
-    good: ["riboflavin", "biotin", "selenium", "manganese", "iodine", "copper", "choline"],
-    deep: ["molybdenum", "pantothenic acid", "chromium", "pyridoxine", "cobalamin", "menaquinone", "tocopherol", "phylloquinone"] },
-
-  { q: "Name a yoga pose", cat: "health",
-    surface: ["downward dog", "childs pose", "warrior", "tree pose", "plank"],
-    tooclever: ["cobra", "lotus", "corpse pose", "cat cow", "bridge"],
-    common: ["pigeon", "triangle", "chair pose", "crow pose", "camel", "happy baby", "sun salutation"],
-    good: ["half moon", "eagle pose", "wheel pose", "boat pose", "side crow", "dancers pose", "fish pose"],
-    deep: ["astavakrasana", "marichyasana", "firefly pose", "compass pose", "scorpion pose", "king pigeon", "bird of paradise", "tittibhasana"] },
-
-  { q: "Name a cardio exercise", cat: "health",
-    surface: ["running", "walking", "cycling", "swimming", "jumping jacks"],
-    tooclever: ["rowing", "burpees", "jump rope", "elliptical", "stair climbing"],
-    common: ["hiit", "spinning", "mountain climbers", "high knees", "treadmill", "hiking", "boxing"],
-    good: ["assault bike", "sled push", "battle ropes", "ski erg", "shuttle run", "farmers carry"],
-    deep: ["tabata", "fartlek", "rucking", "prowler sprint", "versaclimber", "jacobs ladder", "bear crawl"] },
-
   { q: "Name a major organ", cat: "health",
     surface: ["heart", "brain", "lungs", "liver", "kidney"],
     tooclever: ["stomach", "skin", "pancreas", "intestine", "bladder"],
     common: ["spleen", "gallbladder", "thyroid", "esophagus", "colon", "appendix", "uterus"],
     good: ["adrenal gland", "pituitary", "thymus", "prostate", "hypothalamus", "parathyroid"],
     deep: ["pineal gland", "duodenum", "jejunum", "ileum", "cecum", "epididymis", "lacrimal gland", "islets of langerhans"] },
-
-  { q: "Name a running distance or race", cat: "health",
-    surface: ["marathon", "5k", "10k", "half marathon", "sprint"],
-    tooclever: ["100 meters", "mile", "ultramarathon", "triathlon", "ironman"],
-    common: ["400 meters", "800 meters", "1500 meters", "steeplechase", "relay", "50k", "hurdles"],
-    good: ["100k", "50 miler", "100 miler", "fell running", "cross country", "racewalk", "backyard ultra"],
-    deep: ["comrades marathon", "badwater", "barkley marathons", "western states", "spartathlon", "six day race", "leadville"] },
-
-  { q: "Name a martial art", cat: "health",
-    surface: ["karate", "judo", "boxing", "taekwondo", "kung fu"],
-    tooclever: ["jiu jitsu", "muay thai", "aikido", "mma", "wrestling"],
-    common: ["kickboxing", "capoeira", "krav maga", "sambo", "kendo", "tai chi", "wing chun"],
-    good: ["hapkido", "escrima", "silat", "sumo", "savate", "systema", "shuai jiao"],
-    deep: ["lethwei", "bokator", "kalaripayattu", "vale tudo", "glima", "bartitsu", "naginatajutsu", "pankration"] },
-
-  { q: "Name a bodyweight exercise", cat: "health",
-    surface: ["push up", "sit up", "pull up", "squat", "plank"],
-    tooclever: ["burpee", "lunge", "dip", "crunch", "mountain climber"],
-    common: ["pistol squat", "chin up", "leg raise", "glute bridge", "wall sit", "superman", "bear crawl"],
-    good: ["muscle up", "handstand push up", "l-sit", "archer push up", "nordic curl", "dragon flag", "hollow hold"],
-    deep: ["planche", "front lever", "human flag", "back lever", "manna", "one arm pull up", "victorian cross", "iron cross"] },
-
-  { q: "Name a common injury or ailment from exercise", cat: "health",
-    surface: ["sprain", "strain", "pulled muscle", "shin splints", "cramp"],
-    tooclever: ["tennis elbow", "runners knee", "acl tear", "rotator cuff tear", "plantar fasciitis"],
-    common: ["tendinitis", "stress fracture", "it band syndrome", "hamstring pull", "bursitis", "sciatica"],
-    good: ["meniscus tear", "labral tear", "achilles tendinopathy", "golfers elbow", "turf toe", "herniated disc"],
-    deep: ["rhabdomyolysis", "compartment syndrome", "spondylolysis", "os trigonum", "femoroacetabular impingement", "relative energy deficiency", "exertional hyponatremia"] },
-
-  { q: "Name a piece of gym equipment", cat: "health",
-    surface: ["dumbbell", "barbell", "treadmill", "kettlebell", "bench"],
-    tooclever: ["resistance band", "medicine ball", "rowing machine", "squat rack", "cable machine"],
-    common: ["pull up bar", "leg press", "smith machine", "lat pulldown", "stability ball", "jump rope", "ab wheel"],
-    good: ["trap bar", "landmine", "glute ham developer", "reverse hyper", "plyo box", "weighted vest", "dip belt"],
-    deep: ["nautilus pullover", "pendulum squat", "belt squat", "sissy squat bench", "isometric rack", "safety squat bar", "buffalo bar", "fat gripz"] },
 ];
