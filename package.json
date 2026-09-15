@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "node build.js",
-    "deploy": "node build.js && wrangler deploy"
+    "deploy": "node build.js && wrangler deploy",
+    "prepare": "node build.js"
   },
   "devDependencies": {
     "wrangler": "^4.131.2"

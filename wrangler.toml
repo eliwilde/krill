@@ -1,6 +1,11 @@
 name = "krill"
 compatibility_date = "2026-09-15"
 
+# Pinned rather than left to wrangler's defaults. Both of these were being
+# enabled implicitly on every deploy, with a warning each time.
+workers_dev = true
+preview_urls = false
+
 # Strata is a no-build static game: index.html plus a few ES modules. The
 # assets binding serves the directory directly, so there is no Worker script
 # to keep in sync with the game code.
