@@ -147,19 +147,41 @@ const SPRITES = {
     ctx.strokeStyle = '#9AA0A6'; ctx.lineWidth = 1.8; ctx.stroke();
   },
 
-  // a rim sherd — the curve of a vessel that is mostly gone
+  // A rim sherd — a fragment, not a pot. Symmetry made it read as an intact
+  // urn, so the outline is deliberately lopsided and broken on three sides.
   pot() {
-    ctx.save();
-    ctx.beginPath();                                   // clip to a broken wedge
-    ctx.moveTo(3, 9); ctx.lineTo(29, 7); ctx.lineTo(27, 26);
-    ctx.lineTo(16, 29); ctx.lineTo(6, 22); ctx.closePath();
-    ctx.clip();
-    ell(16, 30, 15, 17, '#9C5138');                    // body of the vessel
-    ell(16, 30, 11, 13, '#7A3F2C');                    // hollow interior
+    const body = () => {
+      ctx.beginPath();
+      ctx.moveTo(4.5, 12);                              // left break, jagged
+      ctx.lineTo(9, 9.6);
+      ctx.quadraticCurveTo(17, 7.2, 26.5, 11);          // the rim, curving away
+      ctx.lineTo(24, 18.5);
+      ctx.lineTo(25.5, 21);                             // stepped break
+      ctx.lineTo(20, 24.5);
+      ctx.lineTo(16.5, 22.5);
+      ctx.lineTo(10, 23);                               // ragged lower edge
+      ctx.lineTo(7.5, 18);
+      ctx.closePath();
+    };
+    body();
+    ctx.fillStyle = '#9C5138'; ctx.fill();
+
+    ctx.save(); body(); ctx.clip();
+    ctx.beginPath();                                    // interior seen past rim
+    ctx.moveTo(6, 13.5);
+    ctx.quadraticCurveTo(17, 10.4, 26, 13.8);
+    ctx.lineTo(28, 2); ctx.lineTo(4, 2); ctx.closePath();
+    ctx.fillStyle = '#6E3626'; ctx.fill();
+    stroke([[5,17.5],[17,20.4],[27,17.6]], '#89452F', 1.1);   // scored bands
+    stroke([[5,19.8],[17,22.7],[27,19.9]], '#B0603F', 0.7);
+    ctx.fillStyle = 'rgba(255,225,190,.10)';            // worn patch
+    ctx.fillRect(11, 14.5, 7, 3);
     ctx.restore();
-    stroke([[3.5,9],[16,6.6],[29,7.4]], '#C4764F', 2.4); // thickened rim, lit
-    stroke([[7,15],[16,13.6],[26,14.2]], '#6B3627', 1.2); // a scored band
-    poly([[6,22],[16,29],[27,26]], 'rgba(0,0,0,.22)');  // broken lower edge
+
+    stroke([[9,9.6],[17,7.4],[26.5,11]], '#C4764F', 1.9);     // thickened rim
+    // pale fresh-broken edges: the giveaway that this is a fragment
+    stroke([[4.5,12],[7.5,18],[10,23]], '#C99070', 0.8);
+    stroke([[24,18.5],[25.5,21],[20,24.5]], '#C99070', 0.8);
   },
 
   // clay pipe: thin stem, snapped, with the bowl still attached
@@ -188,10 +210,10 @@ const SPRITES = {
     poly([[0,20],[32,20],[32,27],[0,27]], '#6E665C');  // the bedding
     ctx.save();
     ctx.beginPath();                                    // cambered surface
-    ctx.moveTo(0, 19); ctx.quadraticCurveTo(16, 11, 32, 19);
+    ctx.moveTo(0, 18.4); ctx.quadraticCurveTo(16, 15, 32, 18.4);
     ctx.lineTo(32, 22); ctx.lineTo(0, 22); ctx.closePath();
     ctx.clip();
-    ctx.fillStyle = '#9C9388'; ctx.fillRect(0, 10, 32, 13);
+    ctx.fillStyle = '#9C9388'; ctx.fillRect(0, 13, 32, 10);
     for (let i = 0; i < 9; i++) {                       // set stones
       const x = i * 3.6 + 0.6;
       ctx.fillStyle = i % 2 ? '#8A8177' : '#A8A095';
@@ -278,32 +300,54 @@ const SPRITES = {
     ctx.lineCap = 'round'; ctx.stroke();
     for (let i = 0; i < 7; i++)                                     // shaggy coat
       stroke([[8 + i * 2.6, 22], [7.4 + i * 2.6, 26]], '#5B3A22', 1.1);
-    ctx.fillStyle = 'rgba(150,210,235,.14)';                        // ice lens
-    ctx.fillRect(0, 6, 32, 24);
+    // frozen in, not behind glass: a soft lens of ice over the body only
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(16, 18, 15, 13, 0, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(150,210,235,.13)';
+    ctx.fillRect(0, 0, 32, 32);
+    stroke([[3,9],[12,13],[9,20]], 'rgba(200,235,250,.16)', 1.2);   // frost veins
+    stroke([[24,8],[21,15],[27,21]], 'rgba(200,235,250,.12)', 1.0);
+    ctx.restore();
   },
 
   // ammonite: a real logarithmic spiral with ribs across it
   ammonite() {
-    const cx = 16, cy = 17;
-    ctx.beginPath();                                    // the shell wall
-    for (let i = 0; i <= 150; i++) {
-      const a = i / 150 * Math.PI * 4.6;
-      const r = 1.2 * Math.pow(1.19, a);
+    const cx = 16, cy = 17, TURNS = Math.PI * 5.0, G = 1.175;
+    const at = a => 1.05 * Math.pow(G, a);
+    // A whorl has to thicken as it coils; a constant-width stroke reads as a
+    // flat spring. Fill the band between the outer spiral and the one a full
+    // turn inside it, which is exactly how the shell is built.
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i++) {                    // outer edge, outward
+      const a = i / 200 * TURNS, r = at(a);
       const x = cx + Math.cos(a) * r, y = cy - Math.sin(a) * r;
       i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     }
-    ctx.strokeStyle = '#B0A078'; ctx.lineWidth = 3.4;
-    ctx.lineJoin = 'round'; ctx.stroke();
-    ctx.strokeStyle = '#D6C79C'; ctx.lineWidth = 1.2; ctx.stroke(); // lit crest
-    for (let i = 0; i < 16; i++) {                      // radial ribs
-      const a = i / 16 * Math.PI * 2 + 0.4;
-      const r0 = 1.2 * Math.pow(1.19, a + Math.PI * 2);
-      const r1 = 1.2 * Math.pow(1.19, a + Math.PI * 4.6);
-      if (r1 > 15) continue;
-      stroke([[cx + Math.cos(a) * r0, cy - Math.sin(a) * r0],
-              [cx + Math.cos(a) * r1, cy - Math.sin(a) * r1]], '#7E7052', 0.7);
+    for (let i = 200; i >= 0; i--) {                    // inner edge, back in
+      const a = i / 200 * TURNS;
+      const r = Math.max(at(a - Math.PI * 2), 0.5);
+      ctx.lineTo(cx + Math.cos(a) * r, cy - Math.sin(a) * r);
     }
-    ell(cx, cy, 1.6, 1.6, '#8A7A5C');                   // the protoconch
+    ctx.closePath();
+    ctx.fillStyle = '#B0A078'; ctx.fill();
+    ctx.strokeStyle = '#6A5C44'; ctx.lineWidth = 0.6; ctx.stroke(); // suture
+
+    ctx.save(); ctx.clip();                             // ribs, inside the shell
+    for (let i = 0; i < 40; i++) {
+      const a = i / 40 * TURNS;
+      const r0 = at(a - Math.PI * 2), r1 = at(a);
+      stroke([[cx + Math.cos(a) * r0, cy - Math.sin(a) * r0],
+              [cx + Math.cos(a) * r1, cy - Math.sin(a) * r1]], '#8F7F5E', 0.8);
+    }
+    // light from upper left, falling across the coil
+    ctx.fillStyle = 'rgba(240,228,196,.22)';
+    ctx.beginPath(); ctx.arc(cx - 3, cy - 4, 13, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.20)';
+    ctx.beginPath(); ctx.arc(cx + 7, cy + 8, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ell(cx, cy, 1.3, 1.3, '#7E7052');                   // the protoconch
   },
 
   // coal seam: a compressed forest, with a fern still legible in it
@@ -328,17 +372,26 @@ const SPRITES = {
     ell(16, 9.6, 2.6, 3.0, '#B4A480');                       // glabella
     ell(11.4, 8.6, 1.2, 1.4, '#43391F');                     // eyes
     ell(20.6, 8.6, 1.2, 1.4, '#43391F');
-    for (let i = 0; i < 7; i++) {                            // thoracic segments
-      const y = 13 + i * 2.1, wdt = 8.6 - i * 0.5;
-      poly([[16 - wdt, y], [16 + wdt, y], [16 + wdt - 1, y + 1.7],
-            [16 - wdt + 1, y + 1.7]], i % 2 ? '#8A7A5C' : '#948464');
-      poly([[16 - wdt, y], [16 + wdt, y], [16 + wdt, y + 0.6],
-            [16 - wdt, y + 0.6]], '#AD9D78');
+    // Thorax as one tapering body with segment grooves cut across it — drawn
+    // as separate bars it read as a ladder rather than an animal.
+    ctx.beginPath();
+    ctx.moveTo(8.4, 12.4);
+    ctx.quadraticCurveTo(7.4, 21, 11.6, 27.4);               // left flank
+    ctx.lineTo(20.4, 27.4);
+    ctx.quadraticCurveTo(24.6, 21, 23.6, 12.4);              // right flank
+    ctx.closePath();
+    ctx.fillStyle = '#8A7A5C'; ctx.fill();
+    ctx.save(); ctx.clip();
+    poly([[13,10],[19,10],[19,28],[13,28]], '#A2926E');      // raised axial lobe
+    for (let i = 0; i < 8; i++) {                            // segment grooves
+      const y = 13.4 + i * 1.8;
+      stroke([[6, y], [26, y]], 'rgba(60,50,32,.55)', 0.7);
+      stroke([[6, y + 0.7], [26, y + 0.7]], 'rgba(220,205,170,.22)', 0.5);
     }
-    poly([[11,28],[21,28],[19,31.4],[13,31.4]], '#7E7052');  // pygidium
-    stroke([[16,12.6],[16,30]], '#6A5C44', 0.8);             // axial lobe
-    stroke([[12.4,12.6],[13.6,29]], '#6A5C44', 0.6);
-    stroke([[19.6,12.6],[18.4,29]], '#6A5C44', 0.6);
+    ctx.restore();
+    poly([[11.6,27.4],[20.4,27.4],[18.4,31.2],[13.6,31.2]], '#7E7052'); // pygidium
+    stroke([[13.2,12.6],[14.2,27]], '#6A5C44', 0.7);         // axial furrows
+    stroke([[18.8,12.6],[17.8,27]], '#6A5C44', 0.7);
   },
 
   // a diamond still in the kimberlite that carried it up
@@ -447,15 +500,21 @@ function drawSprite(name, x, y, size = 30, seed = 0) {
   ctx.translate(x, y);
   ctx.scale(k, k);
 
-  // the pocket of disturbed earth the object sits in
+  // The pocket of disturbed earth the object sits in. A flat ellipse stamped a
+  // visible disc on the wall, so it is a soft radial falloff instead — earth
+  // loosened around the find, fading out with no edge of its own.
+  const pocket = ctx.createRadialGradient(15, 17, 2, 16, 17, 20);
+  pocket.addColorStop(0,   'rgba(0,0,0,.34)');
+  pocket.addColorStop(0.55,'rgba(0,0,0,.20)');
+  pocket.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.fillStyle = pocket;
+  ctx.fillRect(-6, -5, 44, 44);
+  // a thin lip of upcast soil catching the light on the upper left
   ctx.beginPath();
-  ctx.ellipse(16, 18, 19, 16, 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,0,0,.30)';
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(15, 16.5, 17, 14, 0, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,220,170,.05)';
-  ctx.fill();
+  ctx.ellipse(15, 16, 15, 12.5, -0.2, Math.PI * 0.75, Math.PI * 1.75);
+  ctx.strokeStyle = 'rgba(255,224,178,.09)';
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
 
   // a slight per-object tilt: nothing stays level for three thousand years
   ctx.translate(16, 16);
@@ -631,7 +690,7 @@ function drawWorld() {
     // The find sits just outside the shaft wall, in the ground. Headline
     // depths get a larger object — they are the ones worth stopping at.
     if (s.icon) {
-      const size = major ? 42 : 32;
+      const size = major ? 52 : 40;
       const ix = side ? shaftX - size - 10 : shaftX + shaftW + 10;
       drawSprite(s.icon, ix, y - size / 2, size, s.ft);
     }
