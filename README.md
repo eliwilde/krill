@@ -63,13 +63,46 @@ prompts ("name a food that's overrated") break the scoring, because no answer
 is objectively rarer than another.
 
 Anything not on any list scores as bedrock (100). The game can't enumerate
-every valid answer, and an unrecognised answer is usually genuinely rare. The
-tradeoff: nonsense also scores 100. A dictionary check would punish real-but-
-obscure answers, which is the opposite of the point.
+every valid answer, and an unrecognised answer is usually genuinely rare. There
+is deliberately **no dictionary check** — that would punish real-but-obscure
+answers, which is the opposite of the point.
+
+What the game does reject, scoring 0, is the *obviously wrong* answer: input
+that isn't an answer at all (under 3 characters, pure digits, no vowels), the
+prompt's own subject word, and answers that are listed under a different
+prompt — "ramen" typed at "name a cheese" is a real word in the wrong
+category. Cross-referencing the whole bank catches those without a dictionary.
+
+### Where the tiers come from
+
+Two halves. `prompts.js` is hand-written — my judgement of what people commonly
+answer. `norms-prompts.js` is **generated from measured human responses** by
+`build-prompts.js`, which merges two academic category-production studies:
+
+| Source | Sample | Categories | Notes |
+|--------|--------|-----------|-------|
+| [Battig & Montague (1969)](https://cran.r-project.org/src/contrib/Archive/WordPools/) | ~440 US | 56 | 5231 words, pre-filtered to freq > 1 |
+| [Banks & Connell (2022)](https://osf.io/jgcu6/) | ~20 UK | 117 | Modern, broader, long singleton tail |
+
+In both, participants were asked to name as many members of a category as they
+could against a clock. How many people said each answer *is* the rarity signal
+the game scores on — so those tiers are measured rather than guessed. Merging
+the two roughly doubles coverage and lets agreement between samples taken 50
+years apart on different continents act as evidence an answer is real.
+
+Licences differ: Banks & Connell is CC-BY 4.0, WordPools is GPL-2. That matters
+if you ever license Strata itself.
+
+Rebuild after changing a source or the tuning:
+
+```
+node build-prompts.js
+```
 
 ### Adding prompts
 
-40 prompts ship, which is about 5 runs before repeats. Append to `prompts.js`:
+149 prompts ship, which is about 21 runs before repeats. Append to `prompts.js`
+(hand-written prompts only — `norms-prompts.js` is generated, don't edit it):
 
 ```js
 { q: "Name a volcano", cat: "geo",
@@ -88,9 +121,14 @@ those are the two tiers the game exists to deflate.
 | File | What it holds |
 |------|---------------|
 | `index.html` | Markup and styling |
-| `prompts.js` | The prompt bank — the thing you'll want to edit |
+| `prompts.js` | Hand-written prompt bank — the thing you'll want to edit |
+| `norms-prompts.js` | **Generated** from the studies below; don't edit by hand |
+| `build-prompts.js` | Regenerates the above from the source datasets |
 | `game.js` | Scoring tiers, answer matching, strata markers |
 | `main.js` | Canvas world, game flow, timer |
+
+The two CSVs and `battig-raw.json` are the raw source data. The game never
+reads them — only `build-prompts.js` does.
 
 ## Notes
 

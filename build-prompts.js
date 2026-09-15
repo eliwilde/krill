@@ -1,0 +1,424 @@
+/* build-prompts.js — regenerate the norms-derived half of the prompt bank.
+ *
+ *   node build-prompts.js
+ *
+ * Emits norms-prompts.js from two independent category-production studies.
+ * Run it only when a source or the tuning below changes; the game itself
+ * never reads these datasets.
+ *
+ * Why this exists: the hand-written tiers in prompts.js are my guesses about
+ * what people commonly answer. These are measurements — participants were
+ * asked to name as many members of a category as they could, and the
+ * frequency of each answer IS the rarity signal the game scores on.
+ *
+ * Two sources, deliberately:
+ *
+ *   Battig & Montague (1969), via the WordPools R package. ~440 US
+ *   participants, 56 categories, 5231 words, pre-filtered to freq > 1 so the
+ *   one-person noise is already gone. Large sample, American spellings, but
+ *   dated in places.
+ *
+ *   Banks & Connell (2022). ~20 UK participants, 117 categories. Small sample
+ *   and a long singleton tail, but modern and much broader in category range.
+ *
+ * Merging them matters more than either alone. Their union roughly doubles
+ * coverage (tree 57 -> 131 answers, weapon 61 -> 150), which is the whole
+ * problem we are solving: the lists were too short, so correct answers kept
+ * falling through to BEDROCK. And agreement between two samples taken 50
+ * years apart on different continents is strong evidence an answer is real,
+ * which lets us treat single-study singletons with more suspicion.
+ *
+ * Licences differ: Banks & Connell is CC-BY 4.0; WordPools is GPL-2. Keep
+ * that in mind before licensing Strata itself.
+ */
+
+const fs = require('fs');
+const path = require('path');
+
+const CSV = path.join(__dirname, 'Referential version_Item level data.csv');
+const BATTIG = path.join(__dirname, 'battig-raw.json');
+const OUT = path.join(__dirname, 'norms-prompts.js');
+
+/* Tiers are assigned by RANK, not by share of the top answer.
+ *
+ * Share-based cut-offs collapse on this data: with ~20 participants and one
+ * runaway answer (oak was named by nearly everyone for "tree"), a 0.7 x max
+ * threshold puts a single word in TOPSOIL and buries the rest. Ranking by
+ * production frequency and splitting proportionally gives every tier a
+ * playable population whatever the category's shape.
+ *
+ * Proportions of each category's answers, shallowest first. Weighted toward
+ * the tail because that is where the game rewards you for digging. */
+const SPLIT = [
+  ['surface',   0.10],
+  ['tooclever', 0.12],
+  ['common',    0.18],
+  ['good',      0.25],
+  ['deep',      0.35],
+];
+
+/* Battig's category name for each prompt, where the two studies overlap.
+ * Keyed by the Banks & Connell name used in USE below. */
+const BATTIG_ALIAS = {
+  'alcoholic drink': 'alcoholic beverage',
+  'bird': 'bird',
+  'chemical element': 'chemical element',
+  'clothing': 'article of clothing',
+  'fabric': 'kind of cloth',
+  'fish': 'fish',
+  'flower': 'flower',
+  'fruit': 'fruit',
+  'furniture': 'article of furniture',
+  'gemstone': 'precious stone',
+  'insect': 'insect',
+  'kitchen utensil': 'kitchen utensil',
+  'metal': 'metal',
+  'musical instrument': 'musical instrument',
+  'natural landform': 'natural earth formation',
+  'part of the body': 'part of the human body',
+  'religious building': 'bldg for religious servic',
+  'snake': 'snake',
+  'spice': 'substance to flavor food',
+  'tree': 'tree',
+  'vegetable': 'vegetable',
+  'vehicle': 'type of vehicle',
+  'weapon': 'weapon',
+};
+
+/* Categories that exist ONLY in Battig — extra prompts the UK study lacks.
+ * Skipped where membership is a matter of taste (type of music, toy), tied to
+ * 1969 America (elective office, military title, college), or a proper-name
+ * list rather than a category (girls first name, city, state). */
+const BATTIG_ONLY = {
+  'four-footed animal': 'Name a four-footed animal',
+  'unit of time':       'Name a unit of time',
+  'unit of distance':   'Name a unit of distance',
+  'type of ship':       'Name a type of ship',
+  'type of fuel':       'Name a type of fuel',
+  'type of footgear':   'Name a type of footwear',
+  'type of human dwelling': 'Name a type of human dwelling',
+  'weather phenomenon': 'Name a weather phenomenon',
+  'carpenters tool':    "Name a carpenter's tool",
+  'type of dance':      'Name a type of dance',
+  'disease':            'Name a disease',
+  'crime':              'Name a crime',
+  'science':            'Name a branch of science',
+  'sport':              'Name a sport',
+  'occupation or profession': 'Name an occupation',
+  'part of a building': 'Name a part of a building',
+  'nonalcoholic beverage': 'Name a non-alcoholic drink',
+  'type of reading material': 'Name a type of reading material',
+  'relative':           'Name a family relative',
+  'color':              'Name a colour',
+};
+
+/* Categories to publish, with the prompt wording the game shows. Anything not
+ * listed here is skipped: the norms include abstract categories ("emotion",
+ * "negative personal quality") whose membership is a matter of opinion, and
+ * a few concrete ones too vague to score fairly. */
+const USE = {
+  'alcoholic drink':     'Name an alcoholic drink',
+  'bird':                'Name a bird',
+  'bird of prey':        'Name a bird of prey',
+  'boat':                'Name a type of boat or ship',
+  'body of water':       'Name a body of water',
+  'breed of dog':        'Name a breed of dog',
+  'building material':   'Name a building material',
+  'camping equipment':   'Name a piece of camping equipment',
+  'chemical element':    'Name a chemical element',
+  'clothing':            'Name an item of clothing',
+  'cosmetic':            'Name a cosmetic',
+  'dairy product':       'Name a dairy product',
+  'fabric':              'Name a fabric',
+  'farm animal':         'Name a farm animal',
+  'fish':                'Name a fish',
+  'flower':              'Name a flower',
+  'fruit':               'Name a fruit',
+  'furniture':           'Name a piece of furniture',
+  'gemstone':            'Name a gemstone',
+  'herb':                'Name a herb',
+  'insect':              'Name an insect',
+  'jewellery':           'Name a piece of jewellery',
+  'kitchen appliance':   'Name a kitchen appliance',
+  'kitchen utensil':     'Name a kitchen utensil',
+  'meat':                'Name a type of meat',
+  'metal':               'Name a metal',
+  'musical instrument':  'Name a musical instrument',
+  'natural landform':    'Name a natural landform',
+  'nut':                 'Name a nut',
+  'part of the body':    'Name a part of the body',
+  'part of the face':    'Name a part of the face',
+  'religious building':  'Name a religious building',
+  'rodent':              'Name a rodent',
+  'room in a house':     'Name a room in a house',
+  'snake':               'Name a snake',
+  'spice':               'Name a spice',
+  'string instrument':   'Name a string instrument',
+  'tool':                'Name a tool',
+  'tree':                'Name a tree',
+  'vegetable':           'Name a vegetable',
+  'vehicle':             'Name a vehicle',
+  'water bird':          'Name a water bird',
+  'weapon':              'Name a weapon',
+  'wind instrument':     'Name a wind instrument',
+};
+
+/* Participants were asked to speak freely, so a few responses are commentary
+ * rather than answers ("political speech or acts" for weapon). */
+const META = /^(different|various|other|some|many|all|any)\b|\b(etc|stuff|things?|type|types|kind|kinds|sort|sorts|generic|misc)\b/i;
+const SENTENCE = /\b(that|which|someone|something|you can|used for|aspects?|impact)\b/i;
+
+/* Free-response data records what participants said, including when they were
+ * wrong. These are answers the norms list under a category they do not belong
+ * to — an acorn is not a tree, a jellyfish is not a fish. Dropped so the game
+ * never rewards a wrong answer as if it were an obscure right one. */
+const WRONG = {
+  tree: ['acorn', 'conker', 'banana', 'coconut', 'bush', 'berry bush', 'leaf',
+    'leaves', 'branch', 'twig', 'root', 'bark', 'wood', 'forest', 'shrub',
+    'blossom', 'nut', 'pine cone', 'fruit tree', 'christmas tree', 'monkey',
+    'fruit', 'mango', 'hazelnut', 'plant', 'green', 'sapling', 'coniferous',
+    'grapefruit', 'honeysuckle', 'evergreen', 'deciduous', 'trunk', 'stump',
+    'vine', 'moss', 'fern', 'grass', 'flower'],
+  fish: ['jellyfish', 'prawn', 'prawns', 'shrimp', 'lobster', 'mussel',
+    'mussels', 'clams', 'crab', 'octopus', 'squid', 'axolotl', 'whale',
+    'dolphin', 'starfish', 'cold water', 'seafood', 'shellfish', 'oyster',
+    'scallop', 'cuttlefish', 'sea urchin', 'newt', 'frog', 'salamander',
+    'crayfish', 'smoked fish', 'gefillte', 'steak', 'tadpole', 'seal',
+    'walrus', 'turtle', 'water', 'fishing'],
+  fruit: ['tomato', 'cucumber', 'aubergine', 'aubergines', 'squash', 'chilli',
+    'chillis', 'chillies', 'cucurbits', 'avocado', 'pepper', 'peppers',
+    'courgette', 'fruit vegetables', 'pumpkin', 'olive', 'rhubarb'],
+  vegetable: ['tomato', 'avocado', 'chilli', 'chillis', 'fruit'],
+  spice: ['parsley', 'oregano', 'basil', 'mint', 'rosemary', 'thyme', 'sage',
+    'coriander leaf', 'salt', 'spicy', 'herbs', 'bay leaf', 'dill', 'chives'],
+  herb: ['salt', 'pepper', 'cumin', 'paprika', 'cinnamon', 'turmeric', 'spice'],
+  insect: ['spider', 'spiders', 'scorpion', 'centipede', 'millipede', 'worm',
+    'slug', 'snail', 'tick', 'mite', 'woodlouse'],
+  'stinging insect': ['spider', 'scorpion', 'jellyfish', 'nettle'],
+  bird: ['bat', 'butterfly', 'moth', 'insect'],
+  metal: ['plastic', 'wood', 'glass', 'rubber', 'diamond', 'carbon', 'stone'],
+  nut: ['coconut', 'peanut butter', 'seed', 'seeds'],
+
+  // Battig-only categories. 1969 free response includes some answers that are
+  // improvised rather than category members.
+  weapon: ['book', 'germs', 'can of hairspray', 'reason', 'war', 'words',
+    'shoot', 'hands', 'feet', 'fists', 'mind', 'law', 'money', 'people',
+    'kill', 'arm', 'arms', 'shoes', 'shoe', 'hose', 'rope', 'fire', 'car'],
+  disease: ['death', 'sickness', 'germ', 'virus', 'bacteria', 'pain', 'doctor'],
+  crime: ['criminal', 'jail', 'prison', 'police', 'sin', 'law'],
+  'type of fuel': ['fire', 'energy', 'heat', 'power', 'food', 'sun', 'water'],
+  'unit of time': ['clock', 'watch', 'time', 'moon', 'degree', 'infinity',
+    'eternity', 'night', 'lifetime'],
+  'unit of distance': ['ruler', 'distance', 'space', 'measure', 'long', 'far'],
+  color: ['rainbow', 'colour', 'colours', 'paint', 'crayon', 'light', 'dark'],
+  relative: ['family', 'relative', 'friend', 'person', 'people', 'in-law'],
+  sport: ['ball', 'game', 'team', 'play', 'exercise', 'sports'],
+  'type of dance': ['dancing', 'dance', 'music', 'ballroom'],
+  'occupation or profession': ['job', 'work', 'worker', 'occupation', 'profession', 'boss'],
+  'four-footed animal': ['animal', 'bird', 'fish', 'snake', 'human', 'man',
+    'bug', 'insect', 'spider'],
+  'nonalcoholic beverage': ['drink', 'beverage', 'liquid', 'alcohol', 'beer',
+    'wine', 'whiskey', 'liquor'],
+};
+
+/* Battig's source data truncated words at 18 characters, so a handful of
+ * entries are cut mid-word ("scientific literat", "lieutenant command").
+ * Anything that long is unusable as an answer to type. */
+const TRUNCATED = 18;
+
+/* Bare modifiers that only make sense attached to a head noun. Battig records
+ * them because participants said "angel" meaning angelfish, but on their own
+ * they are not answers — and worse, they would match a real answer as a
+ * fragment. Category-scoped, since "black" is a fine colour but not a snake. */
+const FRAGMENT = {
+  fish: ['angel', 'white', 'king', 'tropical', 'rainbow', 'black', 'blue',
+    'gold', 'silver', 'flying', 'large-mouth bass', 'small-mouth bass', 'sun'],
+  snake: ['king', 'black', 'green', 'coral', 'water', 'garden'],
+  tree: ['christmas', 'shade', 'rubber', 'tulip', 'sassafras tree'],
+  'type of music': ['christmas'],
+  'weather phenomenon': ['rainbow', 'sun'],
+  color: [],
+};
+
+function isJunk(member, category) {
+  if (META.test(member)) return true;
+  if (SENTENCE.test(member)) return true;          // commentary, not an answer
+  if (member.split(' ').length >= 6) return true;  // long enough to be a phrase
+  if (member === category) return true;            // echoes the prompt
+  if (member.length >= TRUNCATED) return true;     // cut mid-word by the source
+  if ((WRONG[category] ?? []).includes(member)) return true;
+  if ((FRAGMENT[category] ?? []).includes(member)) return true;
+  return false;
+}
+
+/* British norms, American-leaning players: keep both spellings reachable by
+ * listing the US form alongside. The game's matcher treats each entry
+ * independently, so both score the same tier. */
+const ALSO = {
+  'aubergine': 'eggplant', 'aubergines': 'eggplant',
+  'courgette': 'zucchini', 'courgettes': 'zucchini',
+  'chilli': 'chili', 'chillis': 'chili', 'chillies': 'chili',
+  'coriander': 'cilantro',
+  'swede': 'rutabaga',
+  'rocket': 'arugula',
+  'jumper': 'sweater',
+  'candyfloss': 'cotton candy',
+  'spring onion': 'green onion',
+  'prawn': 'shrimp', 'prawns': 'shrimp',
+  'plait': 'braid',
+  'tap': 'faucet',
+  'sellotape': 'scotch tape',
+};
+
+/* Both studies, keyed by the prompt's Banks & Connell category name.
+ *
+ * Raw counts are not comparable across studies (440 participants vs 20), so
+ * each answer carries `share` — the fraction of that study's sample who named
+ * it. An answer both studies saw takes the higher share and is marked
+ * confirmed, which the tiering treats as evidence it is genuinely a member. */
+function parse() {
+  const cats = new Map();
+  const add = (cat, mem, share, study) => {
+    if (!mem) return;
+    const key = mem.toLowerCase().trim();
+    if (isJunk(key, cat)) return;
+    if (!cats.has(cat)) cats.set(cat, new Map());
+    const bucket = cats.get(cat);
+
+    /* Bucket by the form the GAME's matcher will reduce this to, so "violet"
+     * and "violets" are one answer rather than two. Two spellings landing in
+     * different tiers is not a cosmetic duplicate: the matcher normalises
+     * both to the same string, and the deeper listing would shadow the
+     * shallower one, so a TOPSOIL answer would silently score FOSSIL BED. */
+    const canon = key.replace(/(?:es|s)$/, '');
+    const prev = bucket.get(canon);
+    if (prev) {
+      prev.share = Math.max(prev.share, share);
+      prev.studies.add(study);
+      // Prefer the shorter surface form as the printed answer.
+      if (key.length < prev.mem.length) prev.mem = key;
+    } else {
+      bucket.set(canon, { mem: key, share, studies: new Set([study]) });
+    }
+  };
+
+  // --- Banks & Connell (UK) -------------------------------------------
+  const lines = fs.readFileSync(CSV, 'utf8').trim().split(/\r?\n/);
+  const head = lines[0].split(',');
+  const iCat = head.indexOf('category');
+  const iMem = head.indexOf('category.member');
+  const iPct = head.indexOf('prod.freq.percent');
+  if (iCat < 0 || iMem < 0 || iPct < 0) throw new Error('unexpected CSV columns');
+
+  for (const line of lines.slice(1)) {
+    const f = line.split(',');           // verified: no quoted fields in this file
+    const cat = f[iCat], pct = Number(f[iPct]);
+    if (!USE[cat] || !Number.isFinite(pct)) continue;
+    add(cat, f[iMem], pct, 'uk');
+  }
+
+  // --- Battig & Montague (US) -----------------------------------------
+  const battig = JSON.parse(fs.readFileSync(BATTIG, 'utf8'));
+  const maxByCat = new Map();
+  for (const r of battig) {
+    maxByCat.set(r.cat, Math.max(maxByCat.get(r.cat) ?? 0, r.freq));
+  }
+  // Reverse the alias map, plus the Battig-only prompts.
+  const toPrompt = new Map();
+  for (const [ukCat, batCat] of Object.entries(BATTIG_ALIAS)) toPrompt.set(batCat, ukCat);
+  for (const batCat of Object.keys(BATTIG_ONLY)) toPrompt.set(batCat, batCat);
+
+  for (const r of battig) {
+    const cat = toPrompt.get(r.cat);
+    if (!cat) continue;
+    // Battig reports raw counts; express as a share of its own top answer so
+    // the scale matches the UK percentages closely enough to rank together.
+    const share = (r.freq / maxByCat.get(r.cat)) * 100;
+    add(cat, r.word, share, 'us');
+  }
+
+  // Map -> array, and record how many studies saw each answer.
+  const out = new Map();
+  for (const [cat, bucket] of cats) {
+    out.set(cat, [...bucket.values()].map((v) => ({
+      mem: v.mem,
+      share: v.share,
+      confirmed: v.studies.size > 1,
+    })));
+  }
+  return out;
+}
+
+function tierise(members) {
+  // Most-named first; ties broken alphabetically so rebuilds are reproducible.
+  const sorted = [...members].sort((a, b) =>
+    b.share - a.share || a.mem.localeCompare(b.mem));
+  const out = { surface: [], tooclever: [], common: [], good: [], deep: [] };
+  const seen = new Set();
+
+  // Tier boundaries by position in the ranking.
+  const n = sorted.length;
+  const bounds = [];
+  let acc = 0;
+  for (const [tier, share] of SPLIT) {
+    acc += share * n;
+    bounds.push([tier, Math.round(acc)]);
+  }
+
+  sorted.forEach(({ mem }, i) => {
+    const tier = bounds.find(([, limit]) => i < limit)?.[0] ?? 'deep';
+    for (const word of [mem, ALSO[mem]]) {
+      if (!word || seen.has(word)) continue;
+      seen.add(word);
+      out[tier].push(word);
+    }
+  });
+  return out;
+}
+
+const cats = parse();
+const entries = [];
+let skipped = [];
+
+const ALL = { ...USE, ...BATTIG_ONLY };
+
+for (const [cat, question] of Object.entries(ALL)) {
+  const members = cats.get(cat);
+  if (!members) { skipped.push(cat + ' (absent)'); continue; }
+  // Too few answers and the tiers cannot be filled meaningfully.
+  if (members.length < 12) { skipped.push(cat + ' (only ' + members.length + ')'); continue; }
+  const t = tierise(members);
+  // Every tier must have something, or scoring has holes.
+  const empty = Object.entries(t).filter(([, v]) => v.length === 0).map(([k]) => k);
+  if (empty.length) { skipped.push(cat + ' (empty: ' + empty.join(',') + ')'); continue; }
+  entries.push({ q: question, cat: 'norms', ...t });
+}
+
+const body = entries.map((e) => {
+  const tiers = ['surface', 'tooclever', 'common', 'good', 'deep']
+    .map((k) => '    ' + k + ': ' + JSON.stringify(e[k]) + ',')
+    .join('\n');
+  return '  { q: ' + JSON.stringify(e.q) + ', cat: "norms",\n' + tiers.replace(/,$/, '') + ' },';
+}).join('\n\n');
+
+fs.writeFileSync(OUT, `/* GENERATED by build-prompts.js — do not edit by hand.
+ *
+ * Tiers are measured, not guessed: each answer's tier comes from how many of
+ * ~20 UK participants named it when asked to list members of the category in
+ * 60 seconds. The most-named answers are TOPSOIL; the long tail is FOSSIL BED.
+ *
+ * Source: Banks, B. & Connell, L. (2022). Category production norms for 117
+ * concrete and abstract categories. Behavior Research Methods.
+ * https://osf.io/jgcu6/ — licensed CC-BY 4.0.
+ */
+
+export const NORMS_PROMPTS = [
+${body}
+];
+`);
+
+console.log('categories used   :', entries.length);
+console.log('answers written   :', entries.reduce((n, e) =>
+  n + ['surface', 'tooclever', 'common', 'good', 'deep'].reduce((m, k) => m + e[k].length, 0), 0));
+if (skipped.length) console.log('skipped           :', skipped.join(', '));
+console.log('wrote', path.basename(OUT));

@@ -1,4 +1,14 @@
-import { PROMPTS } from './prompts.js';
+import { PROMPTS as HAND } from './prompts.js';
+import { NORMS_PROMPTS } from './norms-prompts.js';
+
+/* The bank is two halves. prompts.js is hand-written: my judgement of what
+ * people commonly answer. norms-prompts.js is generated from measured human
+ * responses (see build-prompts.js). Where both cover the same ground the
+ * measured version wins — it is data, not a guess. */
+const PROMPTS = [
+  ...NORMS_PROMPTS,
+  ...HAND.filter((h) => !NORMS_PROMPTS.some((n) => n.q === h.q)),
+];
 
 /* ---------------------------------------------------------------- config */
 
