@@ -96,37 +96,385 @@ function bandColour(f) {
   return '#0E1620';                    // deep water, not soil
 }
 
-/* Sprites for the things buried down there. Drawn as chunky pixel art on a
-   small grid so they sit with the rest of the art rather than looking like
-   clipart. Each is a list of [x, y, w, h, colour] in local pixels. */
+/* The things buried down there.
+
+   These were pixel blobs on a 10x10 grid, which at twenty screen pixels left no
+   room for a silhouette — a pot, a road and a coal seam all came out as three
+   coloured rectangles, so they read as icons rather than objects. They are now
+   drawn as shapes on a 32x32 local grid: enough room for an actual outline, a
+   lit edge and a shadowed one. Each takes the 2d context with the origin
+   already translated and scaled, and draws in 0..32 space.
+
+   Convention: light falls from the upper left (matching the lit shaft wall), so
+   highlights go top/left and occlusion bottom/right. */
+
+// small helpers so each object reads as a shape, not a list of coordinates
+function poly(pts, fill) {
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.closePath();
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+function ell(cx, cy, rx, ry, fill, rot = 0) {
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+function stroke(pts, col, width, round = true) {
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+  ctx.strokeStyle = col;
+  ctx.lineWidth = width;
+  ctx.lineCap = round ? 'round' : 'butt';
+  ctx.lineJoin = round ? 'round' : 'miter';
+  ctx.stroke();
+}
+
 const SPRITES = {
-  coin:      [[2,2,6,6,'#C9A227'],[3,3,4,4,'#F0CE5A'],[4,4,2,2,'#C9A227']],
-  pot:       [[1,3,8,2,'#A6553A'],[2,5,6,4,'#8E4630'],[3,1,2,2,'#A6553A'],[2,5,6,1,'#C46B4A']],
-  pipe:      [[1,5,7,1,'#E8DCC4'],[7,3,3,3,'#E8DCC4'],[8,4,1,1,'#3A2C1E']],
-  post:      [[2,1,2,9,'#4A3520'],[6,2,2,8,'#4A3520'],[1,0,4,1,'#5C4228'],[5,1,4,1,'#5C4228']],
-  road:      [[0,4,10,3,'#8C8378'],[0,4,3,3,'#9C9388'],[4,4,2,3,'#7A7168'],[7,4,3,3,'#9C9388'],[0,7,10,1,'#5E564D']],
-  char:      [[0,4,10,3,'#1A1512'],[1,3,3,1,'#2E2622'],[6,3,3,1,'#2E2622'],[3,5,2,1,'#4A2A1A']],
-  bronze:    [[2,4,7,2,'#4E7A5C'],[1,6,5,2,'#5E8A6C'],[6,2,2,3,'#4E7A5C']],
-  flint:     [[4,1,2,2,'#5A5148'],[3,3,4,3,'#6E655A'],[2,6,6,3,'#5A5148'],[4,2,1,4,'#867C70']],
-  bone:      [[1,4,8,2,'#D8CDB4'],[0,3,2,4,'#E8DDC4'],[8,3,2,4,'#E8DDC4'],[4,1,2,3,'#9C8F76']],
-  mammoth:   [[1,3,7,5,'#6B4A32'],[0,4,2,3,'#7B5A42'],[0,3,1,1,'#8B6A52'],[2,8,2,2,'#5B3A22'],[5,8,2,2,'#5B3A22'],[8,3,2,1,'#D8CDB4'],[8,5,2,1,'#D8CDB4']],
-  ammonite:  [[3,2,4,1,'#8A7A5C'],[2,3,1,4,'#8A7A5C'],[7,3,1,4,'#8A7A5C'],[3,7,4,1,'#8A7A5C'],[4,4,2,2,'#B0A078'],[4,3,3,1,'#6A5C44'],[3,5,1,2,'#6A5C44']],
-  coal:      [[0,3,10,4,'#14100E'],[1,2,4,1,'#241E1A'],[6,7,3,1,'#241E1A'],[3,4,2,1,'#2E2622']],
-  trilobite: [[2,1,6,2,'#7A6A50'],[1,3,8,4,'#8A7A5C'],[3,7,4,2,'#6A5C44'],[3,3,1,4,'#5A4C36'],[6,3,1,4,'#5A4C36']],
-  diamond:   [[4,1,2,1,'#BFE8F0'],[2,2,6,3,'#8FD0E0'],[3,5,4,2,'#BFE8F0'],[4,7,2,2,'#6FB0C8']],
-  wreck:     [[0,4,10,3,'#4A4038'],[1,7,8,1,'#3A322A'],[2,1,1,3,'#5A5048'],[6,2,1,2,'#5A5048'],[0,4,10,1,'#6A6058']],
-  mine:      [[4,0,2,6,'#7A7168'],[2,6,6,4,'#5E564D'],[3,7,4,2,'#2A241E'],[1,5,8,1,'#8C8378']],
-  trench:    [[0,6,10,4,'#060C14'],[0,5,3,1,'#101A24'],[7,5,3,1,'#101A24'],[4,4,2,1,'#1A2A38']],
-  grass:     [[0,6,10,4,'#4E6B32'],[1,4,1,2,'#5E7B42'],[4,3,1,3,'#5E7B42'],[7,4,1,2,'#5E7B42'],[0,6,10,1,'#6E8B52']],
+  // a scatter of modern litter, half-turned in the soil
+  coin() {
+    ell(11, 20, 7, 4.5, '#8A6E1C', -0.25);            // coin, edge-on
+    ell(10.4, 19, 6.6, 4.1, '#D8B43A', -0.25);
+    ell(10.4, 19, 3.2, 2.0, '#F2D874', -0.25);
+    poly([[20,12],[27,14],[26,19],[19,17]], '#7C4A3A'); // bottle cap, crimped
+    poly([[20,12],[27,14],[26,15.5],[19.5,13.5]], '#A8664E');
+    stroke([[21,24],[26,23],[28,26]], '#9AA0A6', 2.2);  // key shank
+    ctx.beginPath(); ctx.arc(20.5, 24.2, 2.6, 0, 7);   // key bow
+    ctx.strokeStyle = '#9AA0A6'; ctx.lineWidth = 1.8; ctx.stroke();
+  },
+
+  // a rim sherd — the curve of a vessel that is mostly gone
+  pot() {
+    ctx.save();
+    ctx.beginPath();                                   // clip to a broken wedge
+    ctx.moveTo(3, 9); ctx.lineTo(29, 7); ctx.lineTo(27, 26);
+    ctx.lineTo(16, 29); ctx.lineTo(6, 22); ctx.closePath();
+    ctx.clip();
+    ell(16, 30, 15, 17, '#9C5138');                    // body of the vessel
+    ell(16, 30, 11, 13, '#7A3F2C');                    // hollow interior
+    ctx.restore();
+    stroke([[3.5,9],[16,6.6],[29,7.4]], '#C4764F', 2.4); // thickened rim, lit
+    stroke([[7,15],[16,13.6],[26,14.2]], '#6B3627', 1.2); // a scored band
+    poly([[6,22],[16,29],[27,26]], 'rgba(0,0,0,.22)');  // broken lower edge
+  },
+
+  // clay pipe: thin stem, snapped, with the bowl still attached
+  pipe() {
+    stroke([[3,21],[13,19],[20,17.5]], '#E4D7BC', 2.6, false);
+    stroke([[3,20.2],[13,18.2],[20,16.8]], '#F5ECD8', 1.0, false);
+    poly([[20,11],[27,10],[28,18],[21,20]], '#E4D7BC'); // bowl
+    poly([[20,11],[27,10],[27.4,12],[20.4,13]], '#F5ECD8');
+    ell(23.6, 11.4, 3.2, 1.6, '#2E241A');              // hollow of the bowl
+    poly([[12.4,19.2],[13.6,18.9],[13.2,21],[12,21.2]], '#8D8064'); // the snap
+  },
+
+  // post holes: dark stains where timber rotted in place
+  post() {
+    ell(9, 22, 5.5, 8, 'rgba(0,0,0,.34)');             // the stain spreads
+    ell(23, 21, 5, 7.5, 'rgba(0,0,0,.34)');
+    poly([[6,9],[12,8],[12.6,26],[7,27]], '#3E2C1A');  // timber ghost, packed
+    poly([[6,9],[12,8],[12.2,11],[6.2,12]], '#5A4226');
+    poly([[20,11],[26,10],[26.4,25],[21,26]], '#3E2C1A');
+    poly([[20,11],[26,10],[26.2,13],[20.2,14]], '#5A4226');
+    stroke([[8,14],[10,19],[9,24]], 'rgba(0,0,0,.4)', 1); // grain
+  },
+
+  // Roman road in section: camber, packed cobbles, kerb at each side
+  road() {
+    poly([[0,20],[32,20],[32,27],[0,27]], '#6E665C');  // the bedding
+    ctx.save();
+    ctx.beginPath();                                    // cambered surface
+    ctx.moveTo(0, 19); ctx.quadraticCurveTo(16, 11, 32, 19);
+    ctx.lineTo(32, 22); ctx.lineTo(0, 22); ctx.closePath();
+    ctx.clip();
+    ctx.fillStyle = '#9C9388'; ctx.fillRect(0, 10, 32, 13);
+    for (let i = 0; i < 9; i++) {                       // set stones
+      const x = i * 3.6 + 0.6;
+      ctx.fillStyle = i % 2 ? '#8A8177' : '#A8A095';
+      ctx.fillRect(x, 10, 3.0, 13);
+    }
+    ctx.restore();
+    stroke([[0,19],[16,11.6],[32,19]], '#BDB5A8', 1.1); // lit crown
+    poly([[0,17],[3,17],[3,24],[0,24]], '#7E7569');     // kerbstones
+    poly([[29,17],[32,17],[32,24],[29,24]], '#7E7569');
+    ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.fillRect(0, 26, 32, 2);
+  },
+
+  // a burnt horizon: a black lens with embers and cracked timber
+  char() {
+    ctx.beginPath();
+    ctx.moveTo(0, 20);
+    ctx.bezierCurveTo(8, 15, 22, 24, 32, 17);
+    ctx.lineTo(32, 26);
+    ctx.bezierCurveTo(21, 30, 9, 23, 0, 27);
+    ctx.closePath();
+    ctx.fillStyle = '#17120F'; ctx.fill();
+    stroke([[4,19.6],[12,19],[19,22.4]], '#33291F', 1.4); // grey ash at the top
+    poly([[6,22],[13,21],[13.4,23],[6.4,24]], '#241C16');  // charred timber
+    poly([[18,24],[25,22.6],[25.3,24.6],[18.3,26]], '#241C16');
+    ctx.fillStyle = 'rgba(190,90,30,.55)';                 // a few live embers
+    ctx.fillRect(9, 22.6, 1.4, 1.4);
+    ctx.fillRect(21.5, 24, 1.2, 1.2);
+    ctx.fillStyle = 'rgba(230,140,50,.4)'; ctx.fillRect(15, 23, 1, 1);
+  },
+
+  // bronze: a broken blade and a ring, both gone green
+  bronze() {
+    poly([[4,22],[8,10],[11,9.4],[13,21],[8.6,23.4]], '#6E9C7C'); // blade
+    poly([[8,10],[11,9.4],[12,16],[9.2,16.8]], '#8FBF9C');        // lit face
+    stroke([[8.6,11],[10.4,20]], '#3F6A50', 0.9);                 // midrib
+    poly([[4,22],[13,21],[12.4,23.6],[5,24.6]], '#3F6A50');       // broken butt
+    ctx.beginPath(); ctx.arc(22, 19, 6, 0, 7);                    // ring
+    ctx.strokeStyle = '#6E9C7C'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.beginPath(); ctx.arc(22, 19, 6, 3.4, 5.6);
+    ctx.strokeStyle = '#96C6A4'; ctx.lineWidth = 1.4; ctx.stroke();
+    ctx.fillStyle = 'rgba(120,180,140,.3)';                       // corrosion
+    ctx.fillRect(17, 22, 2, 1.6); ctx.fillRect(25, 15, 1.6, 2);
+  },
+
+  // hand axe: the teardrop biface, with flake scars
+  flint() {
+    poly([[16,3],[23,11],[24,21],[16,29],[8,21],[9,11]], '#6E655A');
+    poly([[16,3],[23,11],[24,21],[16,29]], '#5A5148');   // shadowed half
+    poly([[16,3],[9,11],[8,21],[16,29]], '#7C7266');     // lit half
+    stroke([[16,4],[16,28]], '#4E463D', 0.8);            // central ridge
+    stroke([[15.4,7],[11,12]], '#8E8478', 0.9);          // flake scars
+    stroke([[15.6,13],[10,17]], '#8E8478', 0.9);
+    stroke([[16.6,9],[21.6,13]], '#4E463D', 0.9);
+    stroke([[16.6,17],[22.4,19]], '#4E463D', 0.9);
+    ctx.fillStyle = 'rgba(255,240,220,.22)';             // fresh conchoidal chip
+    ctx.fillRect(13.6, 24, 2.2, 2.2);
+  },
+
+  // the Clovis point still lodged in a rib
+  bone() {
+    stroke([[1,23],[9,19],[20,16],[31,14]], '#CFC3A6', 4.6);  // the rib
+    stroke([[1,22],[9,18],[20,15],[31,13]], '#E8DDC4', 1.8);  // lit top edge
+    ell(2.6, 23, 3, 2.6, '#DED2B6');                          // articular end
+    poly([[17,4],[20.4,14],[18.6,22],[16.6,14]], '#7E7468');  // fluted point
+    poly([[17,4],[20.4,14],[18.6,22]], '#6A6157');            // shadowed face
+    stroke([[17.6,7],[18.2,19]], '#988E80', 0.8);             // the flute
+    ctx.fillStyle = 'rgba(0,0,0,.4)';                         // the wound
+    ctx.fillRect(16.4, 15.2, 3.4, 2.6);
+  },
+
+  // mammoth in permafrost, seen side-on
+  mammoth() {
+    poly([[7,11],[22,9],[26,13],[25,22],[8,23],[5,17]], '#6B4A32'); // body
+    poly([[7,11],[22,9],[26,13],[24,15],[8,16]], '#7E5A3E');        // lit back
+    ell(6, 15, 5, 5.5, '#6B4A32');                                  // head
+    ell(5.2, 13.4, 3.6, 3.4, '#7E5A3E');                            // domed skull
+    ctx.fillStyle = '#5B3A22';                                      // legs
+    ctx.fillRect(10, 22, 3.4, 7); ctx.fillRect(19, 22, 3.4, 7);
+    ctx.fillStyle = '#4A2C18'; ctx.fillRect(15, 22.6, 3, 6.4);
+    stroke([[4,17],[2,21],[4,25]], '#6B4A32', 2.6);                 // trunk
+    ctx.beginPath();                                                // tusk, curled
+    ctx.moveTo(4.6, 18); ctx.quadraticCurveTo(-0.5, 22, 3, 27);
+    ctx.strokeStyle = '#E8DDC4'; ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round'; ctx.stroke();
+    for (let i = 0; i < 7; i++)                                     // shaggy coat
+      stroke([[8 + i * 2.6, 22], [7.4 + i * 2.6, 26]], '#5B3A22', 1.1);
+    ctx.fillStyle = 'rgba(150,210,235,.14)';                        // ice lens
+    ctx.fillRect(0, 6, 32, 24);
+  },
+
+  // ammonite: a real logarithmic spiral with ribs across it
+  ammonite() {
+    const cx = 16, cy = 17;
+    ctx.beginPath();                                    // the shell wall
+    for (let i = 0; i <= 150; i++) {
+      const a = i / 150 * Math.PI * 4.6;
+      const r = 1.2 * Math.pow(1.19, a);
+      const x = cx + Math.cos(a) * r, y = cy - Math.sin(a) * r;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.strokeStyle = '#B0A078'; ctx.lineWidth = 3.4;
+    ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.strokeStyle = '#D6C79C'; ctx.lineWidth = 1.2; ctx.stroke(); // lit crest
+    for (let i = 0; i < 16; i++) {                      // radial ribs
+      const a = i / 16 * Math.PI * 2 + 0.4;
+      const r0 = 1.2 * Math.pow(1.19, a + Math.PI * 2);
+      const r1 = 1.2 * Math.pow(1.19, a + Math.PI * 4.6);
+      if (r1 > 15) continue;
+      stroke([[cx + Math.cos(a) * r0, cy - Math.sin(a) * r0],
+              [cx + Math.cos(a) * r1, cy - Math.sin(a) * r1]], '#7E7052', 0.7);
+    }
+    ell(cx, cy, 1.6, 1.6, '#8A7A5C');                   // the protoconch
+  },
+
+  // coal seam: a compressed forest, with a fern still legible in it
+  coal() {
+    poly([[0,12],[32,10],[32,25],[0,27]], '#14100E');
+    poly([[0,12],[32,10],[32,12.4],[0,14.4]], '#2E2622'); // bright cleat on top
+    stroke([[0,17],[32,15.4]], 'rgba(255,255,255,.05)', 0.8);
+    stroke([[0,22],[32,20.6]], 'rgba(0,0,0,.5)', 0.9);
+    stroke([[6,24.6],[9,13.4]], '#33291F', 1.0);          // fern frond, pressed
+    for (let i = 0; i < 7; i++) {
+      const y = 23.4 - i * 1.5, s = 3.4 - i * 0.34;
+      stroke([[6.4 + i * 0.42, y], [6.4 + i * 0.42 - s, y - 1.3]], '#3B3026', 0.6);
+      stroke([[6.4 + i * 0.42, y], [6.4 + i * 0.42 + s, y - 1.6]], '#3B3026', 0.6);
+    }
+    ctx.fillStyle = 'rgba(190,200,215,.10)';              // vitreous glint
+    ctx.fillRect(21, 16, 4, 1.2);
+  },
+
+  // trilobite: head shield, segmented thorax, tail
+  trilobite() {
+    poly([[16,4],[24,7],[25,12],[7,12],[8,7]], '#9A8A68');   // cephalon
+    ell(16, 9.6, 2.6, 3.0, '#B4A480');                       // glabella
+    ell(11.4, 8.6, 1.2, 1.4, '#43391F');                     // eyes
+    ell(20.6, 8.6, 1.2, 1.4, '#43391F');
+    for (let i = 0; i < 7; i++) {                            // thoracic segments
+      const y = 13 + i * 2.1, wdt = 8.6 - i * 0.5;
+      poly([[16 - wdt, y], [16 + wdt, y], [16 + wdt - 1, y + 1.7],
+            [16 - wdt + 1, y + 1.7]], i % 2 ? '#8A7A5C' : '#948464');
+      poly([[16 - wdt, y], [16 + wdt, y], [16 + wdt, y + 0.6],
+            [16 - wdt, y + 0.6]], '#AD9D78');
+    }
+    poly([[11,28],[21,28],[19,31.4],[13,31.4]], '#7E7052');  // pygidium
+    stroke([[16,12.6],[16,30]], '#6A5C44', 0.8);             // axial lobe
+    stroke([[12.4,12.6],[13.6,29]], '#6A5C44', 0.6);
+    stroke([[19.6,12.6],[18.4,29]], '#6A5C44', 0.6);
+  },
+
+  // a diamond still in the kimberlite that carried it up
+  diamond() {
+    poly([[2,10],[13,6],[26,11],[29,23],[16,29],[4,24]], '#2A2622'); // host rock
+    poly([[2,10],[13,6],[26,11],[24,14],[5,15]], '#3B352E');
+    ctx.fillStyle = 'rgba(120,150,120,.18)';                 // olivine flecks
+    ctx.fillRect(6, 18, 2, 1.6); ctx.fillRect(22, 19, 1.8, 1.6);
+    poly([[16,10],[22,15],[16,24],[10,15]], '#8FD0E0');      // the octahedron
+    poly([[16,10],[22,15],[16,24]], '#6FB0C8');              // right face, shaded
+    poly([[16,10],[10,15],[16,24]], '#BFE8F0');              // left face, lit
+    stroke([[10,15],[22,15]], '#DFF4FA', 0.7);               // girdle
+    ctx.fillStyle = 'rgba(255,255,255,.85)';                 // specular
+    ctx.fillRect(13.4, 13.4, 1.6, 1.6);
+  },
+
+  // the Titanic's bow, buried to the anchors in silt
+  wreck() {
+    ctx.beginPath();                                          // hull, listing
+    ctx.moveTo(1, 16); ctx.lineTo(23, 12);
+    ctx.quadraticCurveTo(30, 12.4, 29, 18);
+    ctx.lineTo(26, 25); ctx.lineTo(4, 25); ctx.closePath();
+    ctx.fillStyle = '#463C33'; ctx.fill();
+    poly([[1,16],[23,12],[23.4,14],[1.4,18]], '#5E5248');     // sheer strake, lit
+    stroke([[3,20.4],[26,17.2]], '#332C25', 1.0);             // plating seam
+    for (let i = 0; i < 8; i++) {                             // portholes
+      ctx.fillStyle = '#17120F';
+      ctx.fillRect(4 + i * 2.7, 19.6 - i * 0.38, 1.3, 1.3);
+    }
+    stroke([[9,12.6],[9,5]], '#5E5248', 1.6);                 // foremast
+    stroke([[6,6.6],[12,5.6]], '#5E5248', 1.0);               // crow's nest yard
+    ell(24.6, 16.4, 2.2, 1.8, '#2B241E');                     // hawse / anchor
+    ctx.fillStyle = 'rgba(90,120,130,.22)';                   // rusticle drips
+    ctx.fillRect(7, 21, 1, 4); ctx.fillRect(14, 20.4, 1, 5);
+    ctx.fillRect(20, 19.6, 1, 4.6);
+    ell(15, 26, 15, 3.4, '#1B2027');                          // silt it sits in
+  },
+
+  // Mponeng: a headframe over the shaft, cage on the rope
+  mine() {
+    poly([[11,2],[21,2],[24,26],[8,26]], 'rgba(0,0,0,.18)');
+    stroke([[12,3],[9,26]], '#8C8378', 1.8);                  // headframe legs
+    stroke([[20,3],[23,26]], '#8C8378', 1.8);
+    stroke([[11.4,3],[20.6,3]], '#A09689', 2.0);              // sheave deck
+    ctx.beginPath(); ctx.arc(16, 4.6, 2.6, 0, 7);             // sheave wheel
+    ctx.strokeStyle = '#B4AA9C'; ctx.lineWidth = 1.4; ctx.stroke();
+    stroke([[10.6,8],[21.4,8]], '#6E655A', 1.2);              // bracing
+    stroke([[10.8,14],[21.2,14]], '#6E655A', 1.2);
+    stroke([[11.4,3],[21,14]], '#6E655A', 0.9);
+    stroke([[20.6,3],[11,14]], '#6E655A', 0.9);
+    stroke([[16,7],[16,20]], '#9C9388', 0.9);                 // hoist rope
+    poly([[13,20],[19,20],[19,25],[13,25]], '#4E463D');       // the cage
+    poly([[13,20],[19,20],[19,21],[13,21]], '#6E655A');
+    ctx.fillStyle = 'rgba(255,220,150,.5)';                   // a lamp in it
+    ctx.fillRect(15.2, 22, 1.6, 1.6);
+    ctx.fillStyle = '#17120F'; ctx.fillRect(12, 26, 8, 6);    // the collar
+  },
+
+  // Challenger Deep: the trench floor, and one thing alive on it
+  trench() {
+    ctx.beginPath();
+    ctx.moveTo(0, 18);
+    ctx.bezierCurveTo(7, 26, 12, 27, 16, 27);
+    ctx.bezierCurveTo(20, 27, 25, 26, 32, 18);
+    ctx.lineTo(32, 32); ctx.lineTo(0, 32); ctx.closePath();
+    ctx.fillStyle = '#060C14'; ctx.fill();
+    stroke([[0,18],[8,25.4],[16,27]], '#16202C', 1.2);        // lit trench wall
+    stroke([[16,27],[24,25.4],[32,18]], '#101822', 1.2);
+    ctx.fillStyle = 'rgba(120,160,190,.10)';                  // sediment haze
+    ctx.fillRect(0, 26, 32, 3);
+    ell(20, 25.4, 3, 1.5, '#7E93A6');                         // amphipod, pale
+    stroke([[17.4,25],[14.6,23.6]], '#7E93A6', 0.7);          // antennae
+    stroke([[17.4,25.6],[14.8,26.4]], '#7E93A6', 0.7);
+    for (let i = 0; i < 4; i++)                               // legs
+      stroke([[19 + i * 1.1, 26.2], [18.6 + i * 1.1, 27.6]], '#63768A', 0.5);
+    ctx.fillStyle = 'rgba(150,220,255,.5)'; ctx.fillRect(7, 21, 1, 1); // marine snow
+    ctx.fillStyle = 'rgba(150,220,255,.3)'; ctx.fillRect(26, 23, 1, 1);
+  },
+
+  // the surface: turf in section, with roots going down
+  grass() {
+    poly([[0,18],[32,17],[32,32],[0,32]], '#4A3524');         // soil below
+    poly([[0,18],[32,17],[32,21],[0,22]], '#5C4229');
+    for (let i = 0; i < 16; i++) {                            // blades
+      const x = i * 2.1 + 0.6, hgt = 5 + rnd(i, 3) * 7;
+      stroke([[x, 19], [x + (rnd(i, 7) - 0.5) * 4, 19 - hgt]],
+             i % 3 ? '#4E6B32' : '#638240', 1.3);
+    }
+    stroke([[0,18.6],[32,17.6]], '#6E8B52', 1.4);             // the turf line
+    for (let i = 0; i < 5; i++) {                             // roots
+      const x = 3 + i * 6.4;
+      stroke([[x, 20], [x + 1.4, 25], [x - 1, 30]], '#3E2C1A', 0.9);
+      stroke([[x + 1.2, 24], [x + 4, 27]], '#3E2C1A', 0.6);
+    }
+  },
 };
 
-function drawSprite(name, x, y, scale = 2) {
-  const s = SPRITES[name];
-  if (!s) return;
-  for (const [px, py, pw, ph, col] of s) {
-    ctx.fillStyle = col;
-    ctx.fillRect(x + px * scale, y + py * scale, pw * scale, ph * scale);
+/* Draw one find, embedded in the ground rather than sitting on it. The soil
+   gets a dug pocket behind the object and a lip of disturbed earth in front, so
+   it reads as something uncovered — which is the whole point of the descent. */
+function drawSprite(name, x, y, size = 30, seed = 0) {
+  const fn = SPRITES[name];
+  if (!fn) return;
+  const k = size / 32;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(k, k);
+
+  // the pocket of disturbed earth the object sits in
+  ctx.beginPath();
+  ctx.ellipse(16, 18, 19, 16, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,.30)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(15, 16.5, 17, 14, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,220,170,.05)';
+  ctx.fill();
+
+  // a slight per-object tilt: nothing stays level for three thousand years
+  ctx.translate(16, 16);
+  ctx.rotate((rnd(seed, 11) - 0.5) * 0.30);
+  ctx.translate(-16, -16);
+
+  ctx.save();
+  fn();
+  ctx.restore();
+
+  // grit lying over the find, so it is partly still buried
+  for (let i = 0; i < 9; i++) {
+    const gx = rnd(seed, i + 40) * 30;
+    const gy = 16 + rnd(seed, i + 60) * 15;
+    ctx.fillStyle = rnd(seed, i + 80) > 0.5 ? 'rgba(0,0,0,.34)'
+                                            : 'rgba(58,42,28,.5)';
+    ctx.fillRect(gx, gy, 1.4 + rnd(seed, i + 20) * 2.6, 1.4);
   }
+  ctx.restore();
 }
 
 function drawWorld() {
@@ -280,10 +628,12 @@ function drawWorld() {
     // digger stays hidden — the descent should uncover things, not list them.
     if (diggerY < s.ft - 0.01) continue;
 
-    // the sprite sits just outside the shaft wall, in the ground
+    // The find sits just outside the shaft wall, in the ground. Headline
+    // depths get a larger object — they are the ones worth stopping at.
     if (s.icon) {
-      const ix = side ? shaftX - 34 : shaftX + shaftW + 14;
-      drawSprite(s.icon, ix, y - 10, 2);
+      const size = major ? 42 : 32;
+      const ix = side ? shaftX - size - 10 : shaftX + shaftW + 10;
+      drawSprite(s.icon, ix, y - size / 2, size, s.ft);
     }
 
     // On a phone there is no room beside the shaft for a line of prose — the
