@@ -700,27 +700,27 @@ function drawWorld() {
     // for everything but the headline depths.
     if (w < 560 && !major) continue;
 
-    ctx.font = major ? '600 11px "DM Mono", monospace' : '10px "DM Mono", monospace';
+    ctx.font = major ? '500 13px "DM Mono", monospace' : '500 12px "DM Mono", monospace';
     ctx.textAlign = side ? 'left' : 'right';
     // A drop shadow rather than more opacity: the labels sit on busy, varying
     // soil, and raising alpha alone still loses them against the lighter grit.
     ctx.shadowColor = 'rgba(0,0,0,.95)';
     ctx.shadowBlur = 4;
     ctx.shadowOffsetY = 1;
-    ctx.fillStyle = major ? 'rgba(255,206,110,1)'
-                  : find  ? 'rgba(242,222,186,.92)'
-                          : 'rgba(206,184,150,.66)';
+    ctx.fillStyle = major ? 'rgba(255,214,126,1)'
+                  : find  ? 'rgba(250,236,210,1)'
+                          : 'rgba(232,214,184,.92)';
     ctx.fillText(s.text, tx, y);
 
     // depth tag + tick
     ctx.font = '9px "DM Mono", monospace';
-    ctx.fillStyle = major ? 'rgba(255,206,110,.85)' : 'rgba(224,196,150,.6)';
+    ctx.fillStyle = major ? 'rgba(255,214,126,.95)' : 'rgba(236,214,176,.85)';
     ctx.fillText(ft(s.ft), tx, y + 13);
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
-    ctx.fillStyle = major ? 'rgba(255,206,110,.55)' : 'rgba(200,175,135,.3)';
-    ctx.fillRect(side ? 18 : w - 66, y + 19, 48, 1);
+    ctx.fillStyle = major ? 'rgba(255,214,126,.8)' : 'rgba(224,200,160,.5)';
+    ctx.fillRect(side ? 18 : w - 66, y + 20, 48, major ? 2 : 1);
   }
   ctx.textAlign = 'left';
 
@@ -774,10 +774,13 @@ function drawWorld() {
     }
   }
 
-  // vignette keeps the centre readable
-  const vg = ctx.createRadialGradient(w / 2, h / 2, h * 0.26, w / 2, h / 2, h * 0.92);
+  // A vignette keeps the centre readable, but at .70 it ate the strata and the
+  // finds along with the glare. Pulled back so the edges of the dig stay legible
+  // — the text has its own scrim behind it and does not need the whole frame
+  // darkened to be read.
+  const vg = ctx.createRadialGradient(w / 2, h / 2, h * 0.42, w / 2, h / 2, h * 1.02);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,.70)');
+  vg.addColorStop(1, 'rgba(0,0,0,.42)');
   ctx.fillStyle = vg;
   ctx.fillRect(0, 0, w, h);
 
@@ -973,16 +976,22 @@ function renderVerdict() {
 
 function renderDone() {
   const depth = depthFor(state.score);
+  // The question above the answer, not just the answer. Reading back a bare
+  // list of words tells you nothing about which prompt produced them.
   const rows = state.log.map((e) => `
     <div class="row ${e.pts >= 60 ? 'big' : ''}">
-      <span class="a">${e.answer ? esc(e.answer) : '—'}</span>
-      <span class="p">${e.label} +${e.pts}</span>
+      <p class="q">${esc(e.q)}</p>
+      <div class="ans">
+        <span class="a">${e.answer ? esc(e.answer) : '—'}</span>
+        <span class="p">${e.label} +${e.pts}</span>
+      </div>
     </div>`).join('');
 
   stage.innerHTML = `
     <p class="eyebrow">FINAL DEPTH</p>
     <p class="final">${ft(depth)}</p>
     <p class="finalsub">${esc(landmark(depth))}</p>
+    <p class="beat">${esc(percentileLine(state.score))}</p>
     <p class="finalsub2">${esc(closing(state.score))}</p>
     <div class="tape">${rows}</div>
     <div class="rowbtns">
@@ -992,17 +1001,38 @@ function renderDone() {
   `;
   document.getElementById('again').onclick = begin;
   document.getElementById('share').onclick = async (ev) => {
-    const marks = state.log.map((x) =>
-      ({ none: '·', surface: '▁', tooclever: '▂', common: '▄', good: '▆', deep: '▇', unlisted: '█' })[x.tier]).join('');
     try {
-      await navigator.clipboard.writeText(
-        `STRATA — ${ft(depth)} of ${ft(BEDROCK)}\n${marks}\n${landmark(depth)}`);
+      await navigator.clipboard.writeText(resultText(depth));
       ev.target.textContent = 'COPIED';
       setTimeout(() => { ev.target.textContent = 'COPY RESULT'; }, 1500);
     } catch {
       ev.target.textContent = 'COPY BLOCKED';
     }
   };
+}
+
+const MARKS = { none: '·', surface: '▁', tooclever: '▂', common: '▄', good: '▆', deep: '▇', unlisted: '█' };
+
+/* Two blocks: the spoiler-free brag line to paste anywhere, then the full
+   transcript. The transcript is the part that lets a bad prompt be found and
+   fixed — a bar chart alone tells you a round went badly but never which
+   question did it, or what the player actually typed. */
+function resultText(depth) {
+  const marks = state.log.map((x) => MARKS[x.tier]).join('');
+  const beat = percentileLine(state.score);
+  const rounds = state.log.map((e, i) => [
+    `${i + 1}. ${e.q}`,
+    `   → ${e.answer || '(no answer)'}  ·  ${e.label} +${e.pts}`,
+  ].join('\n')).join('\n');
+
+  return [
+    `STRATA — ${ft(depth)} of ${ft(BEDROCK)}`,
+    marks,
+    landmark(depth),
+    beat,
+    '',
+    rounds,
+  ].join('\n');
 }
 
 /* A raw number of feet is hard to feel. Anchoring it to something real —
@@ -1022,6 +1052,51 @@ function landmark(f) {
   if (f >= 13)    return 'You reached the Roman road.';
   if (f >= 3)     return 'Medieval pottery. Barely started.';
   return 'You barely broke the topsoil.';
+}
+
+/* "Better than 78% of today's players."
+ *
+ * There is no server, so this is modelled, not measured — and the model is
+ * built from the one thing we do know: the prompt data itself. Each prompt's
+ * tier lists are cut at real prevalence bounds, so a random player's answer
+ * lands in each tier with a known probability. Sampling seven of those and
+ * summing gives a score distribution; a normal approximation of it is close
+ * enough and costs nothing to evaluate.
+ *
+ * Per-answer distribution over {miss, surface, tooclever, common, good, deep,
+ * unlisted} — weighted toward the shallow end because that is what the
+ * prevalence data says people actually say.
+ */
+const ANSWER_DIST = [
+  [0.10, 0],    // no answer / wrong
+  [0.34, 10],   // topsoil
+  [0.14, 15],   // too clever
+  [0.26, 30],   // clay
+  [0.10, 60],   // shale
+  [0.04, 85],   // fossil bed
+  [0.02, 100],  // bedrock
+];
+
+const POP = (() => {
+  const mean = ANSWER_DIST.reduce((s, [p, v]) => s + p * v, 0);
+  const varr = ANSWER_DIST.reduce((s, [p, v]) => s + p * (v - mean) ** 2, 0);
+  return { mean: mean * ROUND_LENGTH, sd: Math.sqrt(varr * ROUND_LENGTH) };
+})();
+
+/** Normal CDF, Abramowitz & Stegun 26.2.17. Plenty accurate for a percentage. */
+function normCdf(z) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  const p = d * t * (1.330274 * t ** 4 - 1.821256 * t ** 3
+                   + 1.781478 * t ** 2 - 0.356538 * t + 0.3193815);
+  return z > 0 ? 1 - p : p;
+}
+
+function percentileLine(score) {
+  const pct = normCdf((score - POP.mean) / POP.sd) * 100;
+  // Never claim 0% or 100% — both read as a bug, and neither is true.
+  const shown = Math.min(99, Math.max(1, Math.round(pct)));
+  return `Better than ${shown}% of today's players.`;
 }
 
 function closing(score) {

@@ -85,9 +85,14 @@ body{
 .stage > *{pointer-events:auto;position:relative;z-index:1}
 /* A soft scrim behind the copy. The dig site is busy and the lamp glow sits
    right where the text does, so the words need their own ground to sit on. */
+/* Tight and dark rather than wide and hazy. The old scrim spread a soft fog
+   across most of the frame, which is what made the dig read as out of focus;
+   this one is opaque where the words actually are and gone by the edges, so the
+   strata and the finds stay sharp. */
 .stage::before{
   content:"";position:absolute;inset:0;z-index:0;
-  background:radial-gradient(ellipse 38% 30% at 50% 52%,rgba(13,10,8,.88) 0%,rgba(13,10,8,.6) 45%,rgba(13,10,8,0) 100%);
+  background:radial-gradient(ellipse 30% 22% at 50% 52%,
+    rgba(13,10,8,.94) 0%,rgba(13,10,8,.82) 40%,rgba(13,10,8,.4) 72%,rgba(13,10,8,0) 100%);
   pointer-events:none;
 }
 
@@ -213,17 +218,32 @@ button.ghost:hover{background:rgba(122,74,40,.35);box-shadow:none}
    gets the emphasis and the raw verdict sits under it, quieter. */
 .finalsub{font-size:13px;color:var(--bone);letter-spacing:.06em;margin:10px 0 2px;animation:rise .4s .12s ease-out both}
 .finalsub2{font-size:11px;color:var(--dim);letter-spacing:.14em;margin:0 0 18px;animation:rise .4s .18s ease-out both}
+/* The line that makes the whole run mean something — sized to be the second
+   thing read after the depth itself. */
+.beat{
+  font-family:var(--fat);
+  font-size:clamp(15px,3.2vw,21px);
+  color:var(--hot);margin:14px 0 2px;line-height:1.25;
+  text-shadow:0 2px 0 rgba(13,10,8,.8);
+  animation:rise .4s .22s ease-out both;
+}
+
 .tape{
-  font-size:12px;line-height:1.85;margin:0 0 20px;
-  max-height:32vh;overflow-y:auto;width:100%;max-width:400px;
+  font-size:12px;line-height:1.6;margin:0 0 20px;
+  max-height:34vh;overflow-y:auto;width:100%;max-width:440px;
   border-top:1px solid var(--rock);border-bottom:1px solid var(--rock);padding:9px 0;
 }
 .tape .row{
-  display:flex;justify-content:space-between;gap:12px;
-  padding:1px 2px;border-left:2px solid transparent;
+  padding:6px 2px;border-left:2px solid transparent;text-align:left;
 }
-.tape .a{color:var(--bone);overflow-wrap:anywhere;text-align:left}
-.tape .p{color:var(--dim);white-space:nowrap}
+.tape .row + .row{border-top:1px solid rgba(46,36,25,.55)}
+.tape .q{
+  margin:0 0 2px;font-size:11px;color:var(--dim);
+  letter-spacing:.02em;overflow-wrap:anywhere;
+}
+.tape .ans{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.tape .a{color:var(--bone);overflow-wrap:anywhere;text-align:left;font-size:13px}
+.tape .p{color:var(--dim);white-space:nowrap;font-size:11px}
 .row.big{border-left-color:var(--hot);padding-left:7px;background:rgba(226,102,59,.07)}
 .row.big .p{color:var(--hot)}
 .rowbtns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
