@@ -4,7 +4,7 @@
    imports. The data the prompts were built from (prevalence.tsv, the CSVs,
    battig-raw.json) is build-time only and stays out of the deploy — it is
    megabytes, and no runtime code fetches it. */
-import { copyFileSync, mkdirSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 
 const FILES = [
   'index.html',
@@ -14,8 +14,13 @@ const FILES = [
   'prompts.js',
 ];
 
-rmSync('public', { recursive: true, force: true });
+/* Clear the contents rather than the directory itself. This project lives in a
+   OneDrive folder, and removing a synced directory fails with EBUSY whenever
+   the sync client (or a running dev server) has a handle on it. */
 mkdirSync('public', { recursive: true });
+for (const entry of readdirSync('public')) {
+  rmSync(`public/${entry}`, { recursive: true, force: true });
+}
 
 let total = 0;
 for (const f of FILES) {
