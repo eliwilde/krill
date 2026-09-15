@@ -481,13 +481,6 @@ export const PROMPTS = [
     deep: ["dupioni", "grosgrain", "faille", "barathea", "batiste", "crepe de chine", "shantung", "moleskin"] },
 
   // ==================== WORDS & LANGUAGE (ENGLISH) ====================
-  { q: "Name a word with no rhyme in English", cat: "words",
-    surface: ["orange", "purple", "silver", "month"],
-    tooclever: ["wolf", "ninth", "pint", "angel", "chimney"],
-    common: ["rhythm", "circle", "empty", "husband", "bulb", "depth", "width"],
-    good: ["scalp", "wasp", "penguin", "discombobulate", "sculpt", "opus", "chaos"],
-    deep: ["plankton", "sixth", "nadir", "toilet", "fugue", "walrus", "gulf", "obvious"] },
-
   { q: "Name a punctuation mark", cat: "words",
     surface: ["period", "comma", "question mark", "exclamation point", "apostrophe"],
     tooclever: ["semicolon", "colon", "hyphen", "quotation mark", "dash"],
@@ -509,13 +502,6 @@ export const PROMPTS = [
     good: ["copula", "quantifier", "expletive", "predeterminer", "modal verb", "clitic"],
     deep: ["adposition", "postposition", "classifier", "evidential", "converb", "ideophone", "circumposition"] },
 
-  { q: "Name a word borrowed into English from another language", cat: "words",
-    surface: ["taco", "sushi", "karaoke", "safari", "ballet"],
-    tooclever: ["schadenfreude", "deja vu", "kindergarten", "tsunami", "croissant"],
-    common: ["cafe", "pajamas", "shampoo", "bungalow", "tycoon", "alcohol", "algebra"],
-    good: ["juggernaut", "hammock", "ombudsman", "sauna", "tundra", "kiosk", "gung ho"],
-    deep: ["zeitgeist", "smorgasbord", "tarantula", "chipmunk", "caravan", "jodhpurs", "assassin", "sherbet"] },
-
   { q: "Name a collective noun for animals", cat: "words",
     surface: ["herd", "flock", "pack", "school", "swarm"],
     tooclever: ["pride", "murder", "pod", "colony", "gaggle"],
@@ -529,13 +515,6 @@ export const PROMPTS = [
     common: ["eye", "wow", "pop", "refer", "solos", "stats", "tenet"],
     good: ["deified", "rotator", "repaper", "redivider", "detartrated", "malayalam"],
     deep: ["tattarrattat", "saippuakivikauppias", "aibohphobia", "releveler", "murdrum", "semordnilap"] },
-
-  { q: "Name a homophone pair", cat: "words",
-    surface: ["their there", "to too", "your youre", "here hear", "its its"],
-    tooclever: ["flour flower", "knight night", "write right", "sea see", "meat meet"],
-    common: ["bare bear", "pair pear", "plain plane", "steal steel", "waist waste", "brake break"],
-    good: ["complement compliment", "principal principle", "stationary stationery", "discreet discrete", "cite site"],
-    deep: ["rheum room", "carat caret", "aural oral", "hoard horde", "palate pallet", "cygnet signet", "fain feign"] },
 
   { q: "Name a word for a fear (a phobia)", cat: "words",
     surface: ["arachnophobia", "claustrophobia", "acrophobia", "agoraphobia"],
@@ -558,12 +537,12 @@ export const PROMPTS = [
     good: ["hypo", "hyper", "peri", "ambi", "circum", "retro", "quasi"],
     deep: ["cata", "eu", "dys", "meta", "para", "endo", "exo", "proto", "pseudo"] },
 
-  { q: "Name a word for a group of words meaning the same thing", cat: "words",
-    surface: ["synonym", "antonym", "thesaurus", "definition"],
-    tooclever: ["homonym", "homophone", "acronym", "idiom", "euphemism"],
-    common: ["hypernym", "hyponym", "eponym", "pseudonym", "toponym", "anagram"],
+  { q: "Name a word ending in -nym", cat: "words",
+    surface: ["synonym", "antonym", "acronym", "homonym", "pseudonym"],
+    tooclever: ["homophone", "eponym", "anonymous", "toponym"],
+    common: ["hypernym", "hyponym", "patronym", "metonym", "demonym"],
     good: ["meronym", "holonym", "retronym", "autonym", "exonym", "contronym", "heteronym"],
-    deep: ["capitonym", "tautonym", "metonym", "demonym", "backronym", "aptronym", "oronym"] },
+    deep: ["capitonym", "tautonym", "backronym", "aptronym", "oronym", "caconym", "endonym"] },
 
   // ==================== GEOGRAPHY (EXPANDED) ====================
   { q: "Name a desert", cat: "geo",
@@ -699,20 +678,6 @@ export const PROMPTS = [
     common: ["kickboxing", "capoeira", "krav maga", "sambo", "kendo", "tai chi", "wing chun"],
     good: ["hapkido", "escrima", "silat", "sumo", "savate", "systema", "shuai jiao"],
     deep: ["lethwei", "bokator", "kalaripayattu", "vale tudo", "glima", "bartitsu", "naginatajutsu", "pankration"] },
-
-  { q: "Name a type of stretching or mobility work", cat: "health",
-    surface: ["hamstring stretch", "toe touch", "quad stretch", "shoulder stretch"],
-    tooclever: ["static stretching", "dynamic stretching", "foam rolling", "yoga", "pilates"],
-    common: ["hip flexor stretch", "pigeon stretch", "cat cow", "childs pose", "calf stretch", "neck roll"],
-    good: ["pnf stretching", "myofascial release", "banded distraction", "couch stretch", "90/90 hip", "thoracic extension"],
-    deep: ["loaded progressive stretching", "contract relax", "ballistic stretching", "jefferson curl", "cossack squat", "kinstretch", "frog stretch"] },
-
-  { q: "Name a macronutrient or diet term", cat: "health",
-    surface: ["protein", "carbs", "fat", "calories", "sugar"],
-    tooclever: ["fiber", "keto", "paleo", "vegan", "intermittent fasting"],
-    common: ["bmr", "tdee", "calorie deficit", "bulking", "cutting", "glycemic index", "macros"],
-    good: ["ketosis", "thermic effect", "nutrient timing", "leucine threshold", "refeed", "carb cycling"],
-    deep: ["gluconeogenesis", "lipolysis", "insulin sensitivity", "amino acid profile", "postprandial thermogenesis", "nitrogen balance", "mtor"] },
 
   { q: "Name a bodyweight exercise", cat: "health",
     surface: ["push up", "sit up", "pull up", "squat", "plank"],
