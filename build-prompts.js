@@ -37,6 +37,7 @@ const path = require('path');
 
 const CSV = path.join(__dirname, 'Referential version_Item level data.csv');
 const BATTIG = path.join(__dirname, 'battig-raw.json');
+const PREVALENCE = path.join(__dirname, 'prevalence.tsv');
 const OUT = path.join(__dirname, 'norms-prompts.js');
 
 /* Tiers are assigned by RANK, not by share of the top answer.
@@ -349,10 +350,88 @@ function parse() {
   return out;
 }
 
+/* ------------------------------------------------------------ prevalence
+ * Word prevalence: the proportion of people who report KNOWING a word, from
+ * Brysbaert, Mandera, McCormick & Keuleers (2019), ~220,000 participants.
+ *
+ * Why the tiering needs a second signal. With ~20 UK participants, more than
+ * half of every category's answers were named by exactly ONE person, so their
+ * production shares are all identical (0.05). Ranking cannot separate them,
+ * and the alphabetical tie-break then decided who landed in FOSSIL BED: "rake"
+ * and "machete" scored 85 points because R and M sort late.
+ *
+ * Prevalence breaks those ties with a real measurement. Among answers nobody
+ * else said, the ones almost everyone KNOWS (rake, cowboy, waitress) are
+ * common words that merely went unsaid by a small sample; the ones few people
+ * know (pestle, mangosteen) are genuinely obscure. Production frequency says
+ * how often an answer is REACHED FOR; prevalence says how widely it is KNOWN.
+ * Neither alone is enough — together they rank the singleton tail honestly.
+ *
+ * Coverage is partial (single-word English lemmas only), so this refines the
+ * ranking where it can and leaves it untouched where it cannot. */
+let prevalence = null;
+function loadPrevalence() {
+  if (prevalence) return prevalence;
+  prevalence = new Map();
+  if (!fs.existsSync(PREVALENCE)) {
+    console.warn('! prevalence.tsv missing — singleton tail will not be reordered');
+    return prevalence;
+  }
+  const lines = fs.readFileSync(PREVALENCE, 'utf8').split(/\r?\n/);
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    const [w, p] = lines[i].split('\t');
+    const n = Number(p);
+    if (w && Number.isFinite(n)) prevalence.set(w.toLowerCase(), n);
+  }
+  return prevalence;
+}
+
+/* How widely an answer's word is known, or null if these norms don't cover it.
+ * Multi-word answers take the rarest word in the phrase: "lodgepole pine" is
+ * gated by "lodgepole". */
+function knownness(mem) {
+  const prev = loadPrevalence();
+  const key = mem.toLowerCase().trim();
+  if (prev.has(key)) return prev.get(key);
+
+  const words = key.split(/[\s-]+/).filter(Boolean);
+  if (words.length > 1) {
+    const vals = words.map((w) => prev.get(w)).filter((v) => v !== undefined);
+    // Only trust a phrase reading when every word was found; a partial match
+    // says nothing about the words we could not look up.
+    if (vals.length === words.length) return Math.min(...vals);
+  }
+  return null;
+}
+
+/* Answers this thinly attested are indistinguishable from each other by
+ * production frequency alone — one person in twenty. Above this, the share
+ * ordering is real data and prevalence must not override it. */
+const SINGLETON = 0.051;
+
+/* An unknown word is assumed moderately obscure rather than maximally so:
+ * uncovered answers are usually proper nouns or compounds, not necessarily
+ * rare. This keeps them mid-tail instead of sweeping them all into DEEP. */
+const UNKNOWN_PREVALENCE = 0.80;
+
 function tierise(members) {
-  // Most-named first; ties broken alphabetically so rebuilds are reproducible.
-  const sorted = [...members].sort((a, b) =>
-    b.share - a.share || a.mem.localeCompare(b.mem));
+  /* Most-named first. Within the singleton tail — where production frequency
+   * has no resolving power — order by how widely the word is known, rarest
+   * first, so genuinely obscure answers sink to the deeper tiers and common
+   * words that simply went unsaid rise toward the shallower ones.
+   *
+   * Alphabetical remains the final tie-break so rebuilds stay reproducible. */
+  const sorted = [...members].sort((a, b) => {
+    if (b.share !== a.share) return b.share - a.share;
+    if (a.share <= SINGLETON && b.share <= SINGLETON) {
+      const ka = knownness(a.mem) ?? UNKNOWN_PREVALENCE;
+      const kb = knownness(b.mem) ?? UNKNOWN_PREVALENCE;
+      // Higher knownness = shallower. Sorts descending, like share.
+      if (ka !== kb) return kb - ka;
+    }
+    return a.mem.localeCompare(b.mem);
+  });
   const out = { surface: [], tooclever: [], common: [], good: [], deep: [] };
   const seen = new Set();
 
@@ -366,7 +445,8 @@ function tierise(members) {
   }
 
   sorted.forEach(({ mem }, i) => {
-    const tier = bounds.find(([, limit]) => i < limit)?.[0] ?? 'deep';
+    let tier = bounds.find(([, limit]) => i < limit)?.[0] ?? 'deep';
+    tier = capByKnownness(mem, tier);
     for (const word of [mem, ALSO[mem]]) {
       if (!word || seen.has(word)) continue;
       seen.add(word);
@@ -374,6 +454,39 @@ function tierise(members) {
     }
   });
   return out;
+}
+
+/* The proportional split assumes every category HAS obscure members. Many do
+ * not. Asked to name an occupation, people produce doctor, teacher, waiter,
+ * welder, author — a long list of words essentially everyone knows. The split
+ * still hands its bottom 35% to DEEP, so "waitress" paid 85 of 100 points for
+ * being alphabetically late among equally-common words.
+ *
+ * So a tier is a ceiling, not a guarantee: an answer may be demoted toward the
+ * surface when prevalence says it is a word nearly everyone knows, but it is
+ * never promoted deeper. Rank still decides how deep an answer CAN go; this
+ * only refuses to call a universally-known word genuinely obscure.
+ *
+ * Categories with a real spread of obscurity (tools: awl 0.75, pestle 0.84;
+ * trees: alder 0.76) keep their deep tiers. Categories without one (occupation)
+ * lose theirs, which is the honest outcome — their tail is not obscure, and
+ * BEDROCK still rewards anything the lists never enumerated.
+ *
+ * Thresholds are deliberately high. Below ~0.97 a word is unknown to enough
+ * people to be a fair deep answer; the cap is aimed only at the near-universal. */
+const KNOWNNESS_CAP = [
+  { min: 0.995, tier: 'common' },  // near-universal: waitress, owner, ivy
+  { min: 0.980, tier: 'good' },    // very widely known: mahogany, announcer
+];
+
+function capByKnownness(mem, tier) {
+  const ORDER = ['surface', 'tooclever', 'common', 'good', 'deep'];
+  const k = knownness(mem);
+  // No coverage: leave the rank-derived tier alone rather than guess.
+  if (k === null) return tier;
+  const rule = KNOWNNESS_CAP.find((r) => k >= r.min);
+  if (!rule) return tier;
+  return ORDER.indexOf(tier) > ORDER.indexOf(rule.tier) ? rule.tier : tier;
 }
 
 const cats = parse();

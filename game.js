@@ -209,6 +209,37 @@ function belongsToAnotherPrompt(prompt, guess) {
   return !owners.has(prompt.q);
 }
 
+/* --------------------------------------------------------------- reveal
+ * After scoring, show what was deeper. The lists hold measured rarity data —
+ * 4,700 ranked answers — and until now a player saw none of it: you were told
+ * TOO CLEVER without ever learning what clever would have been, which is why
+ * a second run played exactly like the first.
+ *
+ * Shows answers from strictly deeper tiers than the one hit, shallowest of
+ * those first — the next rung up, not the most obscure thing in the bank. An
+ * unreachable example teaches nothing; "you said pho, try khao soi" does. */
+export function deeperExamples(prompt, tier, limit = 3) {
+  // BEDROCK has nothing above it, and a rejected answer gets no lesson.
+  if (tier === 'unlisted' || tier === 'none') return [];
+
+  const from = MATCH_ORDER.indexOf(tier);
+  if (from < 0) return [];
+
+  const out = [];
+  for (const deeper of MATCH_ORDER.slice(from + 1)) {
+    const list = prompt[deeper] ?? [];
+    if (!list.length) continue;
+    // Sample rather than take the head, so the same prompt teaches something
+    // new on a replay instead of always naming the same three answers.
+    for (const entry of shuffled(list)) {
+      if (out.length >= limit) break;
+      if (!out.includes(entry)) out.push(entry);
+    }
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 /* ----------------------------------------------------------- round setup */
 
 export function buildRound(seen = []) {

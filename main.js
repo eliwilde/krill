@@ -1,4 +1,4 @@
-import { buildRound, scoreAnswer, STRATA, CONFIG } from './game.js';
+import { buildRound, scoreAnswer, deeperExamples, STRATA, CONFIG } from './game.js';
 
 const { SECONDS, M_PER_POINT, ROUND_LENGTH, BEDROCK } = CONFIG;
 
@@ -277,7 +277,13 @@ function submit(raw) {
   setState({
     screen: 'verdict',
     score,
-    log: [...state.log, { q: prompt.q, answer: String(raw).trim(), ...res }],
+    log: [...state.log, {
+      q: prompt.q,
+      answer: String(raw).trim(),
+      ...res,
+      // Sampled once, here, so re-renders of the verdict don't reshuffle it.
+      deeper: deeperExamples(prompt, res.tier),
+    }],
   });
 }
 
@@ -354,6 +360,11 @@ function renderVerdict() {
     ${last.answer ? `<p class="said">“${esc(last.answer)}”</p>` : `<p class="said">no answer</p>`}
     <p class="gain">+${last.pts} PTS · DIG ${last.pts * M_PER_POINT}m</p>
     <p class="note">${last.note}</p>
+    ${last.deeper?.length ? `
+      <div class="deeper">
+        <p class="deeper-k">${last.tier === 'unlisted' ? '' : 'DEEPER FROM HERE'}</p>
+        <p class="deeper-v">${last.deeper.map(esc).join(' · ')}</p>
+      </div>` : ''}
     <div class="rowbtns" style="margin-top:28px">
       <button id="next">${isEnd ? 'SEE THE DIG ▼' : 'KEEP DIGGING ▼'}</button>
     </div>
