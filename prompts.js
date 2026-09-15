@@ -643,13 +643,6 @@ export const PROMPTS = [
     good: ["newfoundland time", "hawaii-aleutian", "moscow time", "gulf standard time", "west africa time"],
     deep: ["chatham time", "lord howe time", "nepal time", "marquesas time", "eucla time", "line islands time"] },
 
-  { q: "Name a national flag colour combination or feature", cat: "geo",
-    surface: ["stars and stripes", "union jack", "maple leaf", "rising sun", "tricolour"],
-    tooclever: ["crescent and star", "southern cross", "cedar tree", "star of david"],
-    common: ["hammer and sickle", "dragon", "eagle", "sun with face", "wheel"],
-    good: ["kukri knives", "ak-47", "bird of paradise", "coat of arms", "nordic cross"],
-    deep: ["gyrfalcon", "temple of angkor", "chhatrapati", "double-headed eagle", "bald eagle with snake"] },
-
   // ==================== HEALTH & FITNESS ====================
   { q: "Name a muscle in the human body", cat: "health",
     surface: ["bicep", "tricep", "abs", "quad", "hamstring"],

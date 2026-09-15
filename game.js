@@ -58,10 +58,17 @@ function matchStrength(entry, guess) {
   };
 
   if (guess.length < 4) return 0;
-  if (!contains(e, guess) && !contains(guess, e)) return 0;
 
-  // Closer in length = more specific a match.
-  return 100 - Math.abs(e.length - guess.length);
+  // A guess that contains a listed entry is the MORE specific answer
+  // ("double-headed eagle" contains "eagle"), so it outranks the reverse
+  // case, where the guess is only a fragment of a longer entry ("double"
+  // inside "double-headed eagle" — that is not an answer, just a word).
+  if (contains(guess, e)) return 500 - Math.abs(e.length - guess.length);
+  if (contains(e, guess)) {
+    // Fragment of a multi-word entry only counts if it carries most of it.
+    return guess.length * 2 >= e.length ? 200 - (e.length - guess.length) : 0;
+  }
+  return 0;
 }
 
 function bestInList(list, guess) {
@@ -84,6 +91,10 @@ export function scoreAnswer(prompt, raw) {
   const guess = normalise(raw);
   if (!guess) return { tier: 'none', ...TIERS.none };
 
+  // Checked before matching: the prompt's own subject word must not sneak in
+  // as a fragment of a listed entry ("cheese" inside "blue cheese").
+  if (isObviouslyWrong(prompt, guess)) return { tier: 'none', ...TIERS.none };
+
   // Best match wins, not first match. On a tie the deeper tier takes it —
   // if an answer genuinely sits in two lists, the player gets the benefit.
   let bestTier = null;
@@ -98,7 +109,94 @@ export function scoreAnswer(prompt, raw) {
   }
 
   if (bestTier) return { tier: bestTier, ...TIERS[bestTier] };
+
+  /* Nothing matched. The lists cannot enumerate reality — ~31 entries against
+   * answer spaces in the hundreds — so an unlisted answer is often a real one
+   * we simply didn't write down ("wensleydale" for cheese). That is why
+   * BEDROCK pays out, and why we still run NO dictionary check: that would
+   * punish real-but-obscure answers, which is the opposite of the point.
+   *
+   * What we reject instead is the OBVIOUSLY WRONG answer — not "is this a
+   * word?" but "is this even the right kind of thing?". "fish oil" is a fine
+   * English phrase and a terrible answer to "name a cheese".
+   * (Checked up front, before matching.) */
   return { tier: 'unlisted', ...TIERS.unlisted };
+}
+
+/* ------------------------------------------------------- relevance check
+ * Judges whether a guess is the right KIND of thing for this prompt, using
+ * the prompt's own answers as the reference for what a real answer looks
+ * like. Never a dictionary: an obscure real answer we never listed must
+ * still reach BEDROCK. */
+function isObviouslyWrong(prompt, guess) {
+  // An exact listed answer for THIS prompt is always valid, whatever its
+  // shape. Short real answers exist: "io", "ares", "go", "ob", "r&b".
+  for (const tier of MATCH_ORDER) {
+    if (listHasWord(prompt[tier], guess)) return false;
+  }
+
+  // Malformed input: not an answer at all.
+  if (guess.length < 3) return true;          // "2", "ab"
+  if (/^[0-9\s]+$/.test(guess)) return true;  // pure numbers
+  if (!/[aeiouy]/.test(guess)) return true;   // "zzzz", "bcdfg"
+
+  // Explicit rejects: things players actually type that are plainly the
+  // wrong category for this specific prompt.
+  if (listHasWord(prompt.reject, guess)) return true;
+
+  // Cross-reference the rest of the bank. If the guess is a listed answer to
+  // a DIFFERENT prompt, it belongs to that category, not this one — "fish oil"
+  // is a real answer to a vitamin prompt and a wrong one here. This catches
+  // wrong-category answers we never explicitly listed as rejects, and it can
+  // only ever fire on words the bank already knows, so a genuinely obscure
+  // answer we never wrote down anywhere still reaches BEDROCK.
+  if (belongsToAnotherPrompt(prompt, guess)) return true;
+
+  // The prompt's own subject words are never answers to it. "Name a cheese"
+  // should not accept "cheese"; "name a big cat" should not accept "cat".
+  if (subjectWords(prompt.q).some((w) => normalise(w) === guess)) return true;
+
+  return false;
+}
+
+/* Words from the prompt text itself, minus the framing verbs. */
+function subjectWords(q) {
+  const stop = new Set(['name', 'a', 'an', 'the', 'in', 'of', 'or', 'from',
+    'with', 'type', 'kind', 'human', 'body', 'our', 'system', 'that', 'is',
+    'its', 'own', 'for', 'no', 'and', 'played', 'used', 'over', 'people']);
+  return normalise(q).split(' ').filter((w) => w && !stop.has(w));
+}
+
+function listHasWord(list, guess) {
+  if (!list) return false;
+  return list.some((entry) => normalise(entry) === guess);
+}
+
+/* Index of every listed answer in the bank -> the prompts it answers.
+ * Built once, lazily, so importing this module stays cheap. */
+let answerIndex = null;
+function buildIndex() {
+  const idx = new Map();
+  for (const p of PROMPTS) {
+    for (const tier of MATCH_ORDER) {
+      for (const entry of p[tier] ?? []) {
+        const key = normalise(entry);
+        if (!key) continue;
+        if (!idx.has(key)) idx.set(key, new Set());
+        idx.get(key).add(p.q);
+      }
+    }
+  }
+  return idx;
+}
+
+function belongsToAnotherPrompt(prompt, guess) {
+  answerIndex ??= buildIndex();
+  const owners = answerIndex.get(guess);
+  // Unknown to the whole bank -> could be a real obscure answer. Let it through.
+  if (!owners) return false;
+  // Listed under this prompt too -> it matched earlier, not our problem.
+  return !owners.has(prompt.q);
 }
 
 /* ----------------------------------------------------------- round setup */
