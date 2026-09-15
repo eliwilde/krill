@@ -14,8 +14,28 @@ const PROMPTS = [
 
 const ROUND_LENGTH = 7;
 const SECONDS = 25;
-const M_PER_POINT = 10;        // 700 pts = 7000m = bedrock
-const BEDROCK = ROUND_LENGTH * 100 * M_PER_POINT;
+
+/* Depth is measured in FEET, and it scales exponentially rather than linearly.
+ *
+ * A linear scale can't be honest here. Real buried things are shallow — Roman
+ * road at 13ft, a Clovis point at 30ft — while the bottom of the world is
+ * 35,876ft down at Challenger Deep. Spread linearly, every artifact worth
+ * naming would sit in the first 0.1% of the shaft and the other 99.9% would be
+ * empty rock.
+ *
+ * So: depth(score) = A*(e^(k*score/MAX_SCORE) - 1), tuned so one topsoil
+ * answer is ~3ft (a real trench) and a perfect 700 lands exactly on the
+ * Challenger Deep. Each answer digs roughly twice as far as the last, which is
+ * also better drama — the shaft opens slow and ends in freefall. */
+const MAX_SCORE = ROUND_LENGTH * 100;
+const BEDROCK = 35876;         // Challenger Deep, ft. The floor of the world.
+const CURVE = 7;               // steepness; 7 puts one topsoil answer at ~3ft
+const CURVE_A = BEDROCK / (Math.exp(CURVE) - 1);
+
+/** Cumulative score -> depth in feet. */
+export function depthFor(score) {
+  return Math.round(CURVE_A * (Math.exp(CURVE * score / MAX_SCORE) - 1));
+}
 
 /* Tiers, shallowest to deepest. Order matters: matching walks this list. */
 export const TIERS = {
@@ -249,28 +269,53 @@ export function buildRound(seen = []) {
 }
 
 /* --------------------------------------------------------------- strata
- * Depth markers shown down the shaft. Each has a depth in metres and a note.
- * Written to make the descent feel like it passes through real ground. */
+ * What you pass on the way down, at the depth you would really pass it.
+ *
+ * Every depth here is a real figure, not set dressing. Archaeological layers
+ * come from excavation stratigraphy (medieval ~3ft, Roman ~13ft); the deep
+ * marks are the famous ones — Mponeng, the Titanic, Kola, Challenger Deep.
+ * Because the depth scale is exponential the shallow end gets real resolution,
+ * so those first few feet of human debris are actually legible instead of
+ * being crushed into one pixel.
+ *
+ *   kind: 'find'  — an artifact. Something someone left.
+ *         'layer' — geology. The ground itself changing.
+ *         'major' — a headline depth, drawn loud.
+ *
+ * `icon` is drawn as a small sprite beside the shaft at that depth. */
 export const STRATA = [
-  { m: 0,    text: 'surface · topsoil and roots' },
-  { m: 400,  text: 'the plough line — nothing older survives above here' },
-  { m: 800,  text: 'clay. wet, heavy, slow going' },
-  { m: 1200, text: 'a buried field wall, dry-stacked' },
-  { m: 1600, text: 'charcoal layer — something burned here' },
-  { m: 2000, text: 'iron age. post holes and ash' },
-  { m: 2400, text: 'bronze fragments, green with age' },
-  { m: 2800, text: 'the last human thing you will find' },
-  { m: 3200, text: 'sterile sand. no one has been here' },
-  { m: 3600, text: 'THE FOSSIL BEDS' },
-  { m: 4000, text: 'ammonites, coiled and patient' },
-  { m: 4400, text: 'a seam of coal — an old forest, flattened' },
-  { m: 4800, text: 'shale. it splits like pages' },
-  { m: 5200, text: 'trilobites. 500 million years down' },
-  { m: 5600, text: 'THE DEEP ROCK' },
-  { m: 6000, text: 'granite. the crust proper' },
-  { m: 6400, text: 'deeper than any mine ever dug' },
-  { m: 6800, text: 'heat. the rock is warm to the touch' },
-  { m: 7000, text: 'BEDROCK — a perfect dig ends here' },
+  // --- the archaeology. All of it inside the first 40 feet, as in reality ---
+  { ft: 0,      kind: 'major', text: 'SURFACE',                          icon: 'grass' },
+  { ft: 1,      kind: 'find',  text: 'bottle caps, a coin, a lost key',  icon: 'coin' },
+  { ft: 2,      kind: 'layer', text: 'topsoil — roots and worms' },
+  { ft: 3,      kind: 'find',  text: 'medieval pottery sherd',           icon: 'pot' },
+  { ft: 5,      kind: 'layer', text: 'the plough line. nothing older survives above' },
+  { ft: 7,      kind: 'find',  text: 'a clay pipe stem, snapped',        icon: 'pipe' },
+  { ft: 9,      kind: 'find',  text: 'post holes — a house stood here',  icon: 'post' },
+  { ft: 13,     kind: 'find',  text: 'Roman road, still cambered',       icon: 'road' },
+  { ft: 16,     kind: 'find',  text: 'charcoal layer — something burned', icon: 'char' },
+  { ft: 20,     kind: 'find',  text: 'bronze fragments, green with age', icon: 'bronze' },
+  { ft: 26,     kind: 'find',  text: 'a flint hand axe',                 icon: 'flint' },
+  { ft: 30,     kind: 'find',  text: 'Clovis point in mammoth bone',     icon: 'bone' },
+  { ft: 40,     kind: 'layer', text: 'sterile sand. no one has been here' },
+
+  // --- below human reach: deep time -----------------------------------
+  { ft: 60,     kind: 'find',  text: 'permafrost — a mammoth, intact',   icon: 'mammoth' },
+  { ft: 120,    kind: 'layer', text: 'the water table' },
+  { ft: 300,    kind: 'major', text: 'THE FOSSIL BEDS',                  icon: 'ammonite' },
+  { ft: 500,    kind: 'find',  text: 'ammonites, coiled and patient',    icon: 'ammonite' },
+  { ft: 900,    kind: 'find',  text: 'a coal seam — a forest, flattened', icon: 'coal' },
+  { ft: 1600,   kind: 'layer', text: 'shale. it splits like pages' },
+  { ft: 2600,   kind: 'find',  text: 'trilobites. 500 million years down', icon: 'trilobite' },
+  { ft: 4000,   kind: 'layer', text: 'granite. the crust proper' },
+  { ft: 6000,   kind: 'find',  text: 'a diamond pipe, kimberlite',       icon: 'diamond' },
+
+  // --- the famous depths. Every number below is real --------------------
+  { ft: 12500,  kind: 'major', text: 'THE TITANIC LIES HERE',            icon: 'wreck' },
+  { ft: 12766,  kind: 'find',  text: 'Mponeng — deepest mine ever dug',  icon: 'mine' },
+  { ft: 20000,  kind: 'layer', text: 'heat. the rock is warm to the touch' },
+  { ft: 28000,  kind: 'layer', text: 'no light has ever reached this' },
+  { ft: 35876,  kind: 'major', text: 'CHALLENGER DEEP — the floor of the world', icon: 'trench' },
 ];
 
-export const CONFIG = { ROUND_LENGTH, SECONDS, M_PER_POINT, BEDROCK };
+export const CONFIG = { ROUND_LENGTH, SECONDS, BEDROCK, MAX_SCORE };

@@ -51,7 +51,61 @@ topsoil and pho is *too clever* — it feels like a deep cut but thousands of
 players reach for it second. Scoring it below the obvious answer is what makes
 the game more than trivia.
 
-700 points is a perfect run: 7,000m, bedrock.
+700 points is a perfect run: **35,876 ft — the Challenger Deep**.
+
+### Depth is exponential, and measured in feet
+
+Score maps to depth through `depthFor()` in `game.js`:
+
+```
+depth(score) = A * (e^(k·score/700) − 1)      k = 7, A = 35876/(e^7 − 1)
+```
+
+Not a straight line, because a straight line can't be honest here. Real buried
+things are *shallow* — a Roman road at 13ft, a Clovis point at 30ft — while the
+floor of the world is 35,876ft down. Spread linearly, every artifact worth
+naming would sit inside the first 0.1% of the shaft.
+
+The curve gives the shallow end real resolution and still reaches the trench:
+
+| Cumulative score | Depth | |
+|---|---|---|
+| 10 (one topsoil) | 3 ft | medieval pottery |
+| 70 (all topsoil) | 33 ft | a deep trench |
+| 210 (all clay) | 235 ft | |
+| 420 (all shale) | 2,151 ft | |
+| 700 (perfect) | 35,876 ft | Challenger Deep |
+
+Each answer digs roughly 2.7× further than the last, which is also better
+drama — the shaft opens slowly and ends in freefall.
+
+The world is drawn in **log space** for the same reason (`depthToY()` in
+`main.js`), so a dig always *looks* like the same size leap wherever it starts.
+
+### What you dig past
+
+`STRATA` in `game.js` is the list of things you pass on the way down, each at
+the depth you would *really* pass it. Nothing is invented for effect. Artifacts
+are revealed only once the digger has actually reached them.
+
+| Depth | | Why that depth |
+|---|---|---|
+| 3 ft | medieval pottery sherd | typical medieval layer, ~0.87m+ below surface |
+| 13 ft | Roman road | Roman deposits under later occupation |
+| 30 ft | Clovis point in mammoth bone | Clovis kill sites |
+| 60 ft | mammoth in permafrost | Siberian permafrost finds |
+| 12,500 ft | the Titanic | wreck depth in the N. Atlantic |
+| 12,766 ft | Mponeng | deepest mine ever dug |
+| 35,876 ft | Challenger Deep | the floor of the world |
+
+Kola (40,230 ft) is deliberately absent — it is *deeper* than Challenger Deep,
+so it sits below the floor of the game.
+
+Sources: [medieval/Roman stratigraphy](https://sevenswords.uk/how-deep-are-archaeological-remains-buried/),
+[Challenger Deep](https://en.wikipedia.org/wiki/Challenger_Deep),
+[Titanic](https://www.britannica.com/topic/How-Deep-Is-the-Titanic-Wreck),
+[Mponeng](https://en.wikipedia.org/wiki/Mponeng_Gold_Mine),
+[Kola](https://en.wikipedia.org/wiki/Kola_Superdeep_Borehole).
 
 ## Prompts
 

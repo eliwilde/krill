@@ -49,16 +49,28 @@ body{
   background:rgba(13,10,8,.82);
   border:2px solid var(--rock);
   padding:7px 13px;
-  min-width:92px;
+  min-width:108px;
+  backdrop-filter:blur(2px);
 }
 .gauge .k{font-size:9px;letter-spacing:.18em;color:var(--dim);margin:0 0 3px}
-.gauge .v{font-size:19px;margin:0;line-height:1;color:var(--amber)}
+/* Tabular figures: the depth readout counts up every frame, and proportional
+   digits make the whole gauge twitch as the width changes. */
+.gauge .v{
+  font-size:19px;margin:0;line-height:1;color:var(--amber);
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;
+}
 .gauge.score .v{color:var(--hot)}
 .gauge.mid{text-align:center;min-width:0;background:none;border:none}
 .pips{display:flex;gap:4px;justify-content:center;margin-bottom:5px}
-.pip{width:13px;height:13px;border:2px solid var(--rock);background:rgba(13,10,8,.6)}
+.pip{
+  width:13px;height:13px;border:2px solid var(--rock);background:rgba(13,10,8,.6);
+  transition:background .2s,border-color .2s;
+}
 .pip.done{background:var(--amber);border-color:var(--amber)}
-.pip.now{background:var(--hot);border-color:var(--hot)}
+.pip.now{
+  background:var(--hot);border-color:var(--hot);
+  box-shadow:0 0 9px rgba(226,102,59,.6);
+}
 .gauge.mid .k{color:var(--dim)}
 
 /* ---------------- centre stage ---------------- */
@@ -75,7 +87,7 @@ body{
    right where the text does, so the words need their own ground to sit on. */
 .stage::before{
   content:"";position:absolute;inset:0;z-index:0;
-  background:radial-gradient(ellipse 42% 34% at 50% 52%,rgba(13,10,8,.8) 0%,rgba(13,10,8,.45) 55%,rgba(13,10,8,0) 100%);
+  background:radial-gradient(ellipse 38% 30% at 50% 52%,rgba(13,10,8,.88) 0%,rgba(13,10,8,.6) 45%,rgba(13,10,8,0) 100%);
   pointer-events:none;
 }
 
@@ -92,11 +104,19 @@ body{
   margin:0 0 6px;
   max-width:16ch;
   text-shadow:0 3px 0 rgba(13,10,8,.75);
+  animation:rise .38s ease-out both;
 }
-.hint{font-size:11px;color:var(--dim);letter-spacing:.14em;margin:14px 0 0}
+.hint{
+  font-size:11px;color:var(--dim);letter-spacing:.14em;margin:14px 0 0;
+  animation:rise .38s .16s ease-out both;
+}
 
 /* ---------------- input ---------------- */
-.entry{display:flex;gap:9px;margin-top:26px;flex-wrap:wrap;justify-content:center;width:100%;max-width:440px}
+.entry{
+  display:flex;gap:9px;margin-top:26px;flex-wrap:wrap;justify-content:center;
+  width:100%;max-width:440px;
+  animation:rise .38s .08s ease-out both;
+}
 input[type=text]{
   flex:1 1 210px;min-width:0;
   background:rgba(13,10,8,.88);
@@ -104,8 +124,12 @@ input[type=text]{
   color:var(--bone);
   font-family:var(--mono);font-size:17px;
   padding:13px 14px;text-align:center;
+  transition:border-color .15s,box-shadow .15s;
 }
-input[type=text]:focus{outline:none;border-color:var(--amber)}
+input[type=text]:focus{
+  outline:none;border-color:var(--amber);
+  box-shadow:0 0 0 3px rgba(240,180,76,.16);
+}
 input[type=text]::placeholder{color:#6B5940}
 
 button{
@@ -113,18 +137,30 @@ button{
   padding:13px 24px;cursor:pointer;
   background:var(--amber);color:var(--bedrock);
   border:2px solid var(--amber);
+  transition:background .14s,border-color .14s,transform .08s,box-shadow .14s;
 }
-button:hover:not(:disabled){background:#FFC85E;border-color:#FFC85E}
+button:hover:not(:disabled){
+  background:#FFC85E;border-color:#FFC85E;
+  box-shadow:0 0 18px rgba(240,180,76,.3);
+}
+button:active:not(:disabled){transform:translateY(2px)}
 button:disabled{opacity:.35;cursor:default}
 button:focus-visible{outline:3px solid var(--bone);outline-offset:2px}
 button.ghost{background:none;color:var(--bone);border-color:var(--clay)}
-button.ghost:hover{background:rgba(122,74,40,.35)}
+button.ghost:hover{background:rgba(122,74,40,.35);box-shadow:none}
 
 /* ---------------- timer ---------------- */
 .clock{
   font-size:34px;color:var(--amber);margin:0 0 4px;line-height:1;
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;
+  text-shadow:0 2px 0 rgba(13,10,8,.8);
 }
-.clock.low{color:var(--hot)}
+/* Under five seconds the clock should be felt, not read. */
+.clock.low{color:var(--hot);animation:pulse .9s ease-in-out infinite}
+@keyframes pulse{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.13);opacity:.8}
+}
 
 /* ---------------- verdict ---------------- */
 .tier{
@@ -140,8 +176,23 @@ button.ghost:hover{background:rgba(122,74,40,.35)}
 .tier.t-deep{color:#7FB0E8}
 .tier.t-unlisted{color:var(--hot)}
 .said{font-size:17px;margin:0 0 8px;color:var(--bone)}
-.gain{font-size:14px;color:var(--amber);margin:0 0 6px;letter-spacing:.1em}
+.gain{font-size:14px;color:var(--amber);margin:0 0 4px;letter-spacing:.1em}
+.atdepth{font-size:12px;color:var(--bone);opacity:.6;margin:0 0 8px;letter-spacing:.1em}
 .note{font-size:12px;color:var(--dim);margin:0;letter-spacing:.06em}
+
+/* The verdict is the payoff beat — it should arrive, not just appear. */
+.tier{animation:stamp .34s cubic-bezier(.2,1.5,.4,1) both}
+.said,.gain,.atdepth,.note,.deeper{animation:rise .4s ease-out both}
+.said{animation-delay:.06s}
+.gain{animation-delay:.11s}
+.atdepth{animation-delay:.15s}
+.note{animation-delay:.19s}
+.deeper{animation-delay:.25s}
+@keyframes stamp{
+  from{transform:scale(1.5);opacity:0;filter:blur(3px)}
+  to{transform:scale(1);opacity:1;filter:none}
+}
+@keyframes rise{from{transform:translateY(7px);opacity:0}to{transform:none;opacity:1}}
 
 /* What you could have said. Set below the verdict and quieter than it — the
    score is the headline, this is the lesson you take into the next run. */
@@ -153,21 +204,36 @@ button.ghost:hover{background:rgba(122,74,40,.35)}
 .deeper-v{font-size:13px;line-height:1.6;color:#7FB0E8;margin:0;overflow-wrap:anywhere}
 
 /* ---------------- results ---------------- */
-.final{font-family:var(--fat);font-size:clamp(42px,11vw,92px);margin:0;line-height:1;color:var(--amber)}
-.finalsub{font-size:12px;color:var(--dim);letter-spacing:.14em;margin:6px 0 18px}
+.final{
+  font-family:var(--fat);font-size:clamp(38px,10vw,84px);margin:0;line-height:1;color:var(--amber);
+  text-shadow:0 4px 0 rgba(13,10,8,.8);
+  animation:stamp .42s cubic-bezier(.2,1.5,.4,1) both;
+}
+/* The landmark line is the one that makes the number mean something, so it
+   gets the emphasis and the raw verdict sits under it, quieter. */
+.finalsub{font-size:13px;color:var(--bone);letter-spacing:.06em;margin:10px 0 2px;animation:rise .4s .12s ease-out both}
+.finalsub2{font-size:11px;color:var(--dim);letter-spacing:.14em;margin:0 0 18px;animation:rise .4s .18s ease-out both}
 .tape{
   font-size:12px;line-height:1.85;margin:0 0 20px;
   max-height:32vh;overflow-y:auto;width:100%;max-width:400px;
   border-top:1px solid var(--rock);border-bottom:1px solid var(--rock);padding:9px 0;
 }
-.tape .row{display:flex;justify-content:space-between;gap:12px}
+.tape .row{
+  display:flex;justify-content:space-between;gap:12px;
+  padding:1px 2px;border-left:2px solid transparent;
+}
 .tape .a{color:var(--bone);overflow-wrap:anywhere;text-align:left}
 .tape .p{color:var(--dim);white-space:nowrap}
+.row.big{border-left-color:var(--hot);padding-left:7px;background:rgba(226,102,59,.07)}
 .row.big .p{color:var(--hot)}
 .rowbtns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
 
-.intro-copy{font-size:13px;color:var(--dim);line-height:1.8;max-width:34ch;margin:0 0 26px}
+.intro-copy{font-size:13px;color:var(--dim);line-height:1.8;max-width:34ch;margin:0 0 14px}
 .intro-copy b{color:var(--bone);font-weight:400}
+.intro-foot{
+  font-size:10px;letter-spacing:.16em;color:var(--amber);opacity:.72;
+  margin:0 0 24px;
+}
 
 @media (max-width:480px){
   .hud{padding:10px}
