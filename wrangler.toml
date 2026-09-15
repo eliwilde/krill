@@ -1,0 +1,9 @@
+name = "krill"
+compatibility_date = "2026-09-15"
+
+# Strata is a no-build static game: index.html plus a few ES modules. The
+# assets binding serves the directory directly, so there is no Worker script
+# to keep in sync with the game code.
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
