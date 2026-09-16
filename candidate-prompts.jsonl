@@ -1,0 +1,56 @@
+{"q":"Name a reptile","expected_common":["snake","lizard","turtle"],"expected_rare":["tuatara","gavial","skink"]}
+{"q":"Name an arachnid","expected_common":["spider","scorpion","tick"],"expected_rare":["harvestman","solifuge","pseudoscorpion"]}
+{"q":"Name a mushroom","expected_common":["button mushroom","portobello","shiitake"],"expected_rare":["morel","hen of the woods","lion's mane"]}
+{"q":"Name a type of grain","expected_common":["rice","wheat","oats"],"expected_rare":["amaranth","teff","sorghum"]}
+{"q":"Name a citrus fruit","expected_common":["orange","lemon","lime"],"expected_rare":["yuzu","kumquat","citron"]}
+{"q":"Name a tropical fruit","expected_common":["mango","pineapple","papaya"],"expected_rare":["mangosteen","cherimoya","longan"]}
+{"q":"Name a beverage","expected_common":["water","coffee","tea"],"expected_rare":["kombucha","horchata","switchel","shrubs"]}
+{"q":"Name a type of beer","expected_common":["lager","ale","stout"],"expected_rare":["saison","kölsch","gose"]}
+{"q":"Name a type of bread","expected_common":["sourdough","baguette","rye"],"expected_rare":["injera","bannock","pumpernickel"]}
+{"q":"Name a pasta shape","expected_common":["spaghetti","penne","macaroni"],"expected_rare":["orecchiette","radiatori","cavatappi"]}
+{"q":"Name a clothing item","expected_common":["shirt","pants","dress"],"expected_rare":["culottes","jodhpurs","bolero"]}
+{"q":"Name a type of hat","expected_common":["baseball cap","beanie","fedora"],"expected_rare":["fascinator","hennin","biretta"]}
+{"q":"Name a household appliance","expected_common":["refrigerator","microwave","toaster"],"expected_rare":["dehumidifier","range hood","garbage disposal"]}
+{"q":"Name an office supply","expected_common":["pen","pencil","stapler"],"expected_rare":["brad","grommet","correction tape"]}
+{"q":"Name a percussion instrument","expected_common":["drum","cymbal","triangle"],"expected_rare":["cajón","marimba","kalimba"]}
+{"q":"Name a keyboard instrument","expected_common":["piano","organ","keyboard"],"expected_rare":["clavichord","harpsichord","celesta"]}
+{"q":"Name a team sport","expected_common":["soccer","basketball","baseball"],"expected_rare":["broomball","korfball","underwater hockey"]}
+{"q":"Name an individual sport","expected_common":["tennis","golf","boxing"],"expected_rare":["squash","fencing","orienteering"]}
+{"q":"Name a winter sport","expected_common":["skiing","snowboarding","ice skating"],"expected_rare":["biathlon","skeleton","bandy"]}
+{"q":"Name a water sport","expected_common":["swimming","surfing","water polo"],"expected_rare":["canyoning","kitesurfing","synchronized diving"]}
+{"q":"Name a ball sport","expected_common":["soccer","basketball","baseball"],"expected_rare":["jai alai","dodgeball","pétanque"]}
+{"q":"Name a racket sport","expected_common":["tennis","badminton","squash"],"expected_rare":["padel","racquetball","pickleball"]}
+{"q":"Name a martial art","expected_common":["karate","judo","taekwondo"],"expected_rare":["aikido","hapkido","capoeira"]}
+{"q":"Name a board game","expected_common":["chess","Monopoly","Scrabble"],"expected_rare":["mancala","Qwirkle","Carcassonne"]}
+{"q":"Name a card game","expected_common":["poker","blackjack","solitaire"],"expected_rare":["euchre","canasta","cribbage"]}
+{"q":"Name a type of poem","expected_common":["haiku","sonnet","limerick"],"expected_rare":["villanelle","sestina","terza rima"]}
+{"q":"Name a bone","expected_common":["skull","rib","femur"],"expected_rare":["scapula","ulna","talus"]}
+{"q":"Name a muscle","expected_common":["biceps","triceps","quadriceps"],"expected_rare":["sartorius","soleus","trapezius"]}
+{"q":"Name an organ","expected_common":["heart","brain","liver"],"expected_rare":["spleen","pancreas","thyroid"]}
+{"q":"Name a type of cloud","expected_common":["cumulus","cirrus","stratus"],"expected_rare":["lenticular cloud","mammatus cloud","noctilucent cloud"]}
+{"q":"Name a natural disaster","expected_common":["earthquake","hurricane","flood"],"expected_rare":["lahar","seiche","pyroclastic flow"]}
+{"q":"Name a type of storm","expected_common":["thunderstorm","snowstorm","hurricane"],"expected_rare":["derecho","nor'easter","supercell"]}
+{"q":"Name a type of rock","expected_common":["granite","marble","limestone"],"expected_rare":["pumice","schist","obsidian"]}
+{"q":"Name a type of wood","expected_common":["oak","pine","cedar"],"expected_rare":["mahogany","balsa","hickory"]}
+{"q":"Name a type of textile","expected_common":["cotton","wool","linen"],"expected_rare":["hemp","rayon","organza"]}
+{"q":"Name a geometric shape","expected_common":["circle","square","triangle"],"expected_rare":["dodecagon","trapezoid","parabola"]}
+{"q":"Name a three-dimensional shape","expected_common":["cube","sphere","cone"],"expected_rare":["icosahedron","torus","dodecahedron"]}
+{"q":"Name a unit of measurement","expected_common":["inch","foot","mile"],"expected_rare":["furlong","fathom","league"]}
+{"q":"Name a school subject","expected_common":["math","science","history"],"expected_rare":["civics","astronomy","typography"]}
+{"q":"Name a capital city","expected_common":["London","Paris","Washington"],"expected_rare":["Thimphu","Maseru","Ngerulmud"]}
+{"q":"Name a sea","expected_common":["Caribbean Sea","Mediterranean Sea","Red Sea"],"expected_rare":["Weddell Sea","Bering Sea","Sargasso Sea"]}
+{"q":"Name a desert","expected_common":["Sahara","Gobi","Mojave"],"expected_rare":["Atacama","Karakum","Namib"]}
+{"q":"Name a constellation","expected_common":["Orion","Gemini","Leo"],"expected_rare":["Lyra","Scorpius","Cassiopeia"]}
+{"q":"Name an astronomical object","expected_common":["star","planet","moon"],"expected_rare":["quasar","nebula","pulsar"]}
+{"q":"Name a holiday","expected_common":["Christmas","Halloween","Thanksgiving"],"expected_rare":["Diwali","Nowruz","Kwanzaa"]}
+{"q":"Name an item of sporting equipment","expected_common":["ball","bat","racket"],"expected_rare":["pommel horse","javelin","shuttlecock"]}
+{"q":"Name a type of currency","expected_common":["dollar","euro","pound"],"expected_rare":["franc","rupee","króna"]}
+{"q":"Name a mammal","expected_common":["dog","cat","horse"],"expected_rare":["aardvark","pangolin","echidna"]}
+{"q":"Name an amphibian","expected_common":["frog","toad","salamander"],"expected_rare":["olm","caecilian","mudpuppy"]}
+{"q":"Name a cooking method","expected_common":["baking","frying","grilling"],"expected_rare":["sous vide","confit","en papillote"]}
+{"q":"Name a power tool","expected_common":["drill","saw","sander"],"expected_rare":["jointer","planer","oscillating multitool"]}
+{"q":"Name an aircraft","expected_common":["airplane","helicopter","glider"],"expected_rare":["autogyro","tiltrotor","ekranoplan"]}
+{"q":"Name a painting medium","expected_common":["watercolor","oil paint","acrylic"],"expected_rare":["encaustic","tempera","grisaille"]}
+{"q":"Name an art movement","expected_common":["Impressionism","Cubism","Surrealism"],"expected_rare":["Suprematism","Fauvism","Rayonism"]}
+{"q":"Name an internet protocol","expected_common":["HTTP","FTP","TCP"],"expected_rare":["BGP","MQTT","WebSocket"]}
+{"q":"Name a medical specialty","expected_common":["surgery","pediatrics","dermatology"],"expected_rare":["rheumatology","nephrology","otolaryngology"]}
