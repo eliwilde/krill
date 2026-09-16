@@ -32,6 +32,11 @@ const PROMPTS = [
 const ROUND_LENGTH = 7;
 const SECONDS = 25;
 
+/* How many recently-answered prompts are held back when the bank is exhausted
+ * and rounds have to reuse prompts. Three rounds' worth, so a prompt you just
+ * answered cannot come back for a while even though the draw is random. */
+const RECENT = ROUND_LENGTH * 3;
+
 /* Depth is measured in FEET, and it scales exponentially rather than linearly.
  *
  * A linear scale can't be honest here. Real buried things are shallow — Roman
@@ -338,9 +343,21 @@ export function buildRound(seen = []) {
   // with the least-recently-seen, so repeats only appear once the bank is
   // genuinely exhausted and even then in the order they'll feel freshest.
   const unseen = shuffled(PROMPTS.filter((p) => !seen.includes(p.q)));
-  const stale = PROMPTS
+  // Staleness picks the pool, chance picks the round out of it. Ordering the
+  // stale prompts by seen.indexOf alone is completely deterministic — every
+  // prompt has a distinct index, so nothing is left for a shuffle to break —
+  // and a player who had exhausted the bank got the same seven prompts in the
+  // same order every round forever after. Drawing from the stalest N instead
+  // would keep redrawing what they just answered, since last round's prompts
+  // are themselves only a round away from being stalest. So the freshest
+  // RECENT prompts go to the back of the queue outright and the round is drawn
+  // at random from everything older: varied every time, but never an echo.
+  const recent = seen.slice(-RECENT);
+  const byStaleness = PROMPTS
     .filter((p) => seen.includes(p.q))
     .sort((a, b) => seen.indexOf(a.q) - seen.indexOf(b.q));
+  const stale = shuffled(byStaleness.filter((p) => !recent.includes(p.q)))
+    .concat(byStaleness.filter((p) => recent.includes(p.q)));
 
   const out = [];
   for (const p of [...unseen, ...stale]) {
