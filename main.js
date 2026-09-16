@@ -908,6 +908,9 @@ function updateHud() {
 
 function render() {
   updateHud();
+  // renderDone re-adds this; clearing here keeps the results panel from
+  // bleeding into the next run's play screens.
+  stage.classList.remove('results');
   ({ intro: renderIntro, play: renderPlay, verdict: renderVerdict, done: renderDone })[state.screen]();
 }
 
@@ -962,7 +965,7 @@ function renderVerdict() {
     <p class="note">${last.note}</p>
     ${last.deeper?.length ? `
       <div class="deeper">
-        <p class="deeper-k">${last.tier === 'unlisted' ? '' : 'DEEPER FROM HERE'}</p>
+        <p class="deeper-k">${last.tier === 'unlisted' || last.tier === 'unverified' ? '' : 'DEEPER FROM HERE'}</p>
         <p class="deeper-v">${last.deeper.map(esc).join(' · ')}</p>
       </div>` : ''}
     <div class="rowbtns" style="margin-top:28px">
@@ -987,6 +990,7 @@ function renderDone() {
       </div>
     </div>`).join('');
 
+  stage.classList.add('results');
   stage.innerHTML = `
     <p class="eyebrow">FINAL DEPTH</p>
     <p class="final">${ft(depth)}</p>
@@ -1011,7 +1015,7 @@ function renderDone() {
   };
 }
 
-const MARKS = { none: '·', surface: '▁', tooclever: '▂', common: '▄', good: '▆', deep: '▇', unlisted: '█' };
+const MARKS = { none: '·', surface: '▁', tooclever: '▂', common: '▄', good: '▆', unverified: '▆', deep: '▇', unlisted: '█' };
 
 /* Two blocks: the spoiler-free brag line to paste anywhere, then the full
    transcript. The transcript is the part that lets a bad prompt be found and

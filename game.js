@@ -5,10 +5,27 @@ import { NORMS_PROMPTS } from './norms-prompts.js';
  * people commonly answer. norms-prompts.js is generated from measured human
  * responses (see build-prompts.js). Where both cover the same ground the
  * measured version wins — it is data, not a guess. */
+/* Wrong-category answers players actually type, per prompt. These are the
+ * cases the closed-set rule cannot catch: the prompt is OPEN, so an unlisted
+ * answer normally gets the benefit of the doubt, but these specific ones are
+ * plainly the wrong kind of thing. Kept here rather than in norms-prompts.js
+ * because that file is generated. */
+const REJECTS = {
+  'Name a major organ': ['blood', 'bone', 'muscle', 'skin', 'hair', 'nail', 'vein', 'artery', 'cell'],
+  'Name a fish': ['whale', 'dolphin', 'squid', 'octopus', 'crab', 'lobster', 'shrimp', 'jellyfish', 'seal'],
+  'Name a herb': ['weed', 'grass', 'tree', 'flower', 'salt', 'pepper', 'sugar'],
+  'Name an insect': ['spider', 'scorpion', 'worm', 'snail', 'slug', 'centipede', 'tick', 'mite'],
+  'Name a vehicle': ['road', 'wheel', 'engine', 'tyre', 'tire', 'driver', 'garage'],
+  'Name an occupation': ['money', 'work', 'job', 'salary', 'office', 'unemployed'],
+  'Name a branch of science': ['data', 'research', 'experiment', 'lab', 'scientist', 'theory'],
+  'Name a part of speech': ['word', 'sentence', 'letter', 'grammar', 'language', 'articulation'],
+  'Name a weapon': ['fist', 'hand', 'foot', 'war', 'army', 'soldier', 'violence', 'water', 'fire', 'air', 'earth'],
+};
+
 const PROMPTS = [
   ...NORMS_PROMPTS,
   ...HAND.filter((h) => !NORMS_PROMPTS.some((n) => n.q === h.q)),
-];
+].map((p) => (REJECTS[p.q] ? { ...p, reject: [...(p.reject ?? []), ...REJECTS[p.q]] } : p));
 
 /* ---------------------------------------------------------------- config */
 
@@ -47,6 +64,12 @@ export const TIERS = {
   deep:      { pts: 85,  label: 'FOSSIL BED',   note: 'Genuinely hard to reach.' },
   unlisted:  { pts: 100, label: 'BEDROCK',      note: 'Nobody else went here.' },
 };
+
+/* An unlisted answer on an OPEN set is probably a real answer we never wrote
+ * down, so it still pays — but not more than a listed FOSSIL BED, because we
+ * cannot verify it. Paying 100 for anything unrecognised made typing "yawn"
+ * the highest-scoring move in the game. */
+const UNVERIFIED = { pts: 70, label: 'UNCHARTED', note: 'Off our maps. We will take your word for it.' };
 
 const MATCH_ORDER = ['surface', 'tooclever', 'common', 'good', 'deep'];
 
@@ -140,17 +163,20 @@ export function scoreAnswer(prompt, raw) {
 
   if (bestTier) return { tier: bestTier, ...TIERS[bestTier] };
 
-  /* Nothing matched. The lists cannot enumerate reality — ~31 entries against
-   * answer spaces in the hundreds — so an unlisted answer is often a real one
-   * we simply didn't write down ("wensleydale" for cheese). That is why
-   * BEDROCK pays out, and why we still run NO dictionary check: that would
-   * punish real-but-obscure answers, which is the opposite of the point.
+  /* Nothing matched. What that MEANS depends on the prompt.
    *
-   * What we reject instead is the OBVIOUSLY WRONG answer — not "is this a
-   * word?" but "is this even the right kind of thing?". "fish oil" is a fine
-   * English phrase and a terrible answer to "name a cheese".
-   * (Checked up front, before matching.) */
-  return { tier: 'unlisted', ...TIERS.unlisted };
+   * On a CLOSED set the list is the category: 33 Norse gods is the roster, 50
+   * state capitals is all of them. An answer outside it is not an obscure gem,
+   * it is wrong — so "yawn" for a Norse god scores nothing, as it should.
+   *
+   * On an OPEN set (fish, herb, occupation) ~31 entries cover a few percent of
+   * reality, so an unlisted answer is usually a real one we never wrote down.
+   * Those still pay, at UNCHARTED — real credit, but capped below a listed
+   * FOSSIL BED, because an answer we cannot verify must never outscore one we
+   * measured. We still run NO dictionary check: that would punish genuine
+   * obscure answers, which is the opposite of the point. */
+  if (isClosedSet(prompt)) return { tier: 'none', ...TIERS.none };
+  return { tier: 'unverified', ...UNVERIFIED };
 }
 
 /* ------------------------------------------------------- relevance check
@@ -174,19 +200,69 @@ function isObviouslyWrong(prompt, guess) {
   // wrong category for this specific prompt.
   if (listHasWord(prompt.reject, guess)) return true;
 
-  // Cross-reference the rest of the bank. If the guess is a listed answer to
-  // a DIFFERENT prompt, it belongs to that category, not this one — "fish oil"
-  // is a real answer to a vitamin prompt and a wrong one here. This catches
-  // wrong-category answers we never explicitly listed as rejects, and it can
-  // only ever fire on words the bank already knows, so a genuinely obscure
-  // answer we never wrote down anywhere still reaches BEDROCK.
-  if (belongsToAnotherPrompt(prompt, guess)) return true;
+  // Shape check. We cannot enumerate every wrong answer for 57 open prompts,
+  // so instead we ask whether the guess is even SHAPED like an answer to this
+  // category. Real answers are short noun phrases: "creme fraiche", "sea
+  // snake", "french horn". Sentences and outbursts are not — "this questino
+  // again? jesus" and "yawn boring nonsense" both die here. Measured against
+  // the prompt's own entries, so a category that really does have long names
+  // keeps its headroom.
+  if (isWrongShape(prompt, guess)) return true;
+
+  // NOTE: we deliberately do NOT reject a guess just because another prompt
+  // lists it. Categories overlap in reality — Chad is a landlocked country AND
+  // an African one, eggnog is a drink AND a dairy product, a sea snake is a
+  // snake. That rule scored all three as NOTHING, punishing correct answers
+  // while gibberish still paid out. Wrong-category answers are caught by the
+  // prompt's own `reject` list and by the closed-set rule in scoreAnswer.
 
   // The prompt's own subject words are never answers to it. "Name a cheese"
   // should not accept "cheese"; "name a big cat" should not accept "cat".
   if (subjectWords(prompt.q).some((w) => normalise(w) === guess)) return true;
 
   return false;
+}
+
+/* Words that betray a sentence rather than an answer. A real answer is a noun
+ * phrase; these are the connectives and pronouns that only appear when someone
+ * is talking TO the game instead of answering it. */
+const SENTENCE_WORDS = new Set(['i', 'me', 'my', 'you', 'your', 'we', 'they',
+  'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were', 'be', 'am',
+  'do', 'does', 'did', 'dont', 'doesnt', 'didnt', 'not', 'no', 'idk', 'dunno',
+  'what', 'why', 'how', 'when', 'who', 'again', 'question', 'questions',
+  'answer', 'stupid', 'boring', 'bad', 'wtf', 'lol', 'ugh', 'meh', 'whatever',
+  'fuck', 'fucking', 'shit', 'hate', 'sucks', 'know', 'think', 'guess']);
+
+/* Does the guess fail to look like an answer to this prompt? */
+function isWrongShape(prompt, guess) {
+  const words = guess.split(' ').filter(Boolean);
+
+  // Talking to the game rather than answering it.
+  if (words.some((w) => SENTENCE_WORDS.has(w))) return true;
+
+  // Longer than anything this category actually contains, with slack. Some
+  // categories genuinely have long entries ("central african republic"), so
+  // the bar is the prompt's own longest answer plus one word.
+  const longest = MATCH_ORDER.reduce((max, tier) => {
+    for (const entry of prompt[tier] ?? []) {
+      const n = normalise(entry).split(' ').filter(Boolean).length;
+      if (n > max) max = n;
+    }
+    return max;
+  }, 1);
+  return words.length > longest + 1;
+}
+
+/* Is this prompt's list effectively the whole category?
+ *
+ * A prompt may declare `closed: true/false` itself. Absent that, the measured
+ * norms prompts are treated as OPEN (they are everyday categories — fish,
+ * furniture, occupation — with long real tails), and the hand-written bank as
+ * CLOSED, which is the rule prompts.js already documents for itself: every
+ * prompt in it is a finite roster ~31 entries can actually cover. */
+function isClosedSet(prompt) {
+  if (typeof prompt.closed === 'boolean') return prompt.closed;
+  return prompt.cat !== 'norms';
 }
 
 /* Words from the prompt text itself, minus the framing verbs. */
@@ -202,33 +278,6 @@ function listHasWord(list, guess) {
   return list.some((entry) => normalise(entry) === guess);
 }
 
-/* Index of every listed answer in the bank -> the prompts it answers.
- * Built once, lazily, so importing this module stays cheap. */
-let answerIndex = null;
-function buildIndex() {
-  const idx = new Map();
-  for (const p of PROMPTS) {
-    for (const tier of MATCH_ORDER) {
-      for (const entry of p[tier] ?? []) {
-        const key = normalise(entry);
-        if (!key) continue;
-        if (!idx.has(key)) idx.set(key, new Set());
-        idx.get(key).add(p.q);
-      }
-    }
-  }
-  return idx;
-}
-
-function belongsToAnotherPrompt(prompt, guess) {
-  answerIndex ??= buildIndex();
-  const owners = answerIndex.get(guess);
-  // Unknown to the whole bank -> could be a real obscure answer. Let it through.
-  if (!owners) return false;
-  // Listed under this prompt too -> it matched earlier, not our problem.
-  return !owners.has(prompt.q);
-}
-
 /* --------------------------------------------------------------- reveal
  * After scoring, show what was deeper. The lists hold measured rarity data —
  * 4,700 ranked answers — and until now a player saw none of it: you were told
@@ -240,7 +289,8 @@ function belongsToAnotherPrompt(prompt, guess) {
  * unreachable example teaches nothing; "you said pho, try khao soi" does. */
 export function deeperExamples(prompt, tier, limit = 3) {
   // BEDROCK has nothing above it, and a rejected answer gets no lesson.
-  if (tier === 'unlisted' || tier === 'none') return [];
+  // UNCHARTED sits outside the measured ladder, so it has no "deeper" either.
+  if (tier === 'unlisted' || tier === 'none' || tier === 'unverified') return [];
 
   const from = MATCH_ORDER.indexOf(tier);
   if (from < 0) return [];
@@ -262,10 +312,43 @@ export function deeperExamples(prompt, tier, limit = 3) {
 
 /* ----------------------------------------------------------- round setup */
 
+/* Prompt pairs whose answer lists overlap so heavily that drawing both is a
+ * bad round: you get asked for a recorder twice and it pays 15 one time and 60
+ * the other, because each tier is measured against its own category. The tiers
+ * are not wrong — a robin IS a common bird and an obscure bird of prey — but
+ * seeing both in one sitting reads as the game contradicting itself.
+ * Measured by answer-set containment; see the overlap audit in the commit. */
+const RIVALS = [
+  ['Name a musical instrument', 'Name a wind instrument'],
+  ['Name a musical instrument', 'Name a string instrument'],
+  ['Name a chemical element', 'Name a metal'],
+  ['Name a bird', 'Name a bird of prey'],
+  ['Name a kitchen appliance', 'Name a kitchen utensil'],
+  ['Name a tool', "Name a carpenter's tool"],
+];
+
+function clashes(q, picked) {
+  return RIVALS.some(([a, b]) =>
+    (q === a && picked.includes(b)) || (q === b && picked.includes(a)));
+}
+
 export function buildRound(seen = []) {
-  const unseen = PROMPTS.filter((p) => !seen.includes(p.q));
-  const pool = unseen.length >= ROUND_LENGTH ? unseen : PROMPTS;
-  return shuffled(pool).slice(0, ROUND_LENGTH);
+  // Prefer prompts this player hasn't had. Falling straight back to the full
+  // bank meant a seventh round repeated whatever it liked; instead we top up
+  // with the least-recently-seen, so repeats only appear once the bank is
+  // genuinely exhausted and even then in the order they'll feel freshest.
+  const unseen = shuffled(PROMPTS.filter((p) => !seen.includes(p.q)));
+  const stale = PROMPTS
+    .filter((p) => seen.includes(p.q))
+    .sort((a, b) => seen.indexOf(a.q) - seen.indexOf(b.q));
+
+  const out = [];
+  for (const p of [...unseen, ...stale]) {
+    if (out.length >= ROUND_LENGTH) break;
+    if (clashes(p.q, out.map((x) => x.q))) continue;
+    out.push(p);
+  }
+  return out;
 }
 
 /* --------------------------------------------------------------- strata

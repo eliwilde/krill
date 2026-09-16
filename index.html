@@ -95,6 +95,15 @@ body{
     rgba(13,10,8,.94) 0%,rgba(13,10,8,.82) 40%,rgba(13,10,8,.4) 72%,rgba(13,10,8,0) 100%);
   pointer-events:none;
 }
+/* The results screen is far taller than the round scrim above, so its copy ran
+   off the dark ground and onto lit dirt. It gets a real panel instead. */
+.stage.results::before{
+  background:linear-gradient(rgba(13,10,8,.97),rgba(13,10,8,.97));
+  -webkit-mask-image:radial-gradient(ellipse 62% 78% at 50% 50%,
+    #000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
+  mask-image:radial-gradient(ellipse 62% 78% at 50% 50%,
+    #000 0%,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);
+}
 
 .eyebrow{
   font-size:10px;letter-spacing:.3em;color:var(--bone);
@@ -179,6 +188,8 @@ button.ghost:hover{background:rgba(122,74,40,.35);box-shadow:none}
 .tier.t-none{color:#6B5940}
 .tier.t-good{color:#7FC4A8}
 .tier.t-deep{color:#7FB0E8}
+/* Real credit, but explicitly unverified — so it reads warm, not triumphant. */
+.tier.t-unverified{color:#9FC9B4}
 .tier.t-unlisted{color:var(--hot)}
 .said{font-size:17px;margin:0 0 8px;color:var(--bone)}
 .gain{font-size:14px;color:var(--amber);margin:0 0 4px;letter-spacing:.1em}
@@ -216,8 +227,8 @@ button.ghost:hover{background:rgba(122,74,40,.35);box-shadow:none}
 }
 /* The landmark line is the one that makes the number mean something, so it
    gets the emphasis and the raw verdict sits under it, quieter. */
-.finalsub{font-size:13px;color:var(--bone);letter-spacing:.06em;margin:10px 0 2px;animation:rise .4s .12s ease-out both}
-.finalsub2{font-size:11px;color:var(--dim);letter-spacing:.14em;margin:0 0 18px;animation:rise .4s .18s ease-out both}
+.finalsub{font-size:14px;color:var(--bone);letter-spacing:.06em;margin:10px 0 2px;animation:rise .4s .12s ease-out both;text-shadow:0 1px 3px rgba(13,10,8,.9)}
+.finalsub2{font-size:12px;color:#C9B08A;letter-spacing:.14em;margin:0 0 18px;animation:rise .4s .18s ease-out both}
 /* The line that makes the whole run mean something — sized to be the second
    thing read after the depth itself. */
 .beat{
@@ -231,19 +242,26 @@ button.ghost:hover{background:rgba(122,74,40,.35);box-shadow:none}
 .tape{
   font-size:12px;line-height:1.6;margin:0 0 20px;
   max-height:34vh;overflow-y:auto;width:100%;max-width:440px;
-  border-top:1px solid var(--rock);border-bottom:1px solid var(--rock);padding:9px 0;
+  border-top:1px solid var(--rock);border-bottom:1px solid var(--rock);padding:9px 10px;
+  /* The default scrollbar was a bright white slab against the dirt. */
+  scrollbar-width:thin;scrollbar-color:var(--clay) transparent;
 }
+.tape::-webkit-scrollbar{width:8px}
+.tape::-webkit-scrollbar-track{background:rgba(13,10,8,.5)}
+.tape::-webkit-scrollbar-thumb{background:var(--clay);border-radius:4px}
 .tape .row{
   padding:6px 2px;border-left:2px solid transparent;text-align:left;
 }
 .tape .row + .row{border-top:1px solid rgba(46,36,25,.55)}
+/* 11px dim-on-dirt was the worst offender in the tape. The prompt is context,
+   so it stays quieter than the answer — but quiet, not illegible. */
 .tape .q{
-  margin:0 0 2px;font-size:11px;color:var(--dim);
+  margin:0 0 3px;font-size:12px;color:#C9B08A;
   letter-spacing:.02em;overflow-wrap:anywhere;
 }
 .tape .ans{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
-.tape .a{color:var(--bone);overflow-wrap:anywhere;text-align:left;font-size:13px}
-.tape .p{color:var(--dim);white-space:nowrap;font-size:11px}
+.tape .a{color:var(--bone);overflow-wrap:anywhere;text-align:left;font-size:14px}
+.tape .p{color:#C9A46A;white-space:nowrap;font-size:11px;letter-spacing:.06em}
 .row.big{border-left-color:var(--hot);padding-left:7px;background:rgba(226,102,59,.07)}
 .row.big .p{color:var(--hot)}
 .rowbtns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
