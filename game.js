@@ -355,8 +355,11 @@ export function buildRound(seen = []) {
  * What you pass on the way down, at the depth you would really pass it.
  *
  * Every depth here is a real figure, not set dressing. Archaeological layers
- * come from excavation stratigraphy (medieval ~3ft, Roman ~13ft); the deep
- * marks are the famous ones — Mponeng, the Titanic, Kola, Challenger Deep.
+ * come from excavation stratigraphy (medieval ~3ft, Roman ~13ft); named sites
+ * sit at their published depths (Terracotta Army 23ft, Derinkuyu 280ft, Naica
+ * 984ft, Krubera springtail 6,496ft, Kidd Creek water ~9,500ft, Kola plankton
+ * 21,981ft); the deep marks are the famous ones — Mponeng, the Titanic,
+ * Challenger Deep.
  * Because the depth scale is exponential the shallow end gets real resolution,
  * so those first few feet of human debris are actually legible instead of
  * being crushed into one pixel.
@@ -365,7 +368,10 @@ export function buildRound(seen = []) {
  *         'layer' — geology. The ground itself changing.
  *         'major' — a headline depth, drawn loud.
  *
- * `icon` is drawn as a small sprite beside the shaft at that depth. */
+ * `icon`  is drawn as a sprite beside the shaft at that depth.
+ * `short` is the HUD band label, for entries whose prose does not survive
+ *         being cut to the width of the readout. Optional — without it the
+ *         label is the clause before the first dash or full stop. */
 export const STRATA = [
   // --- the archaeology. All of it inside the first 40 feet, as in reality ---
   { ft: 0,      kind: 'major', text: 'SURFACE',                          icon: 'grass' },
@@ -378,25 +384,35 @@ export const STRATA = [
   { ft: 13,     kind: 'find',  text: 'Roman road, still cambered',       icon: 'road' },
   { ft: 16,     kind: 'find',  text: 'charcoal layer — something burned', icon: 'char' },
   { ft: 20,     kind: 'find',  text: 'bronze fragments, green with age', icon: 'bronze' },
+  { ft: 23,     kind: 'find',  text: 'the Terracotta Army, rank on rank', icon: 'warrior' },
   { ft: 26,     kind: 'find',  text: 'a flint hand axe',                 icon: 'flint' },
   { ft: 30,     kind: 'find',  text: 'Clovis point in mammoth bone',     icon: 'bone' },
   { ft: 40,     kind: 'layer', text: 'sterile sand. no one has been here' },
 
-  // --- below human reach: deep time -----------------------------------
+  // --- still human, but only just. Real sites, real depths -------------
+  { ft: 49,     kind: 'find',  text: 'Göbekli Tepe — a temple, deliberately buried', icon: 'pillar' },
   { ft: 60,     kind: 'find',  text: 'permafrost — a mammoth, intact',   icon: 'mammoth' },
-  { ft: 120,    kind: 'layer', text: 'the water table' },
-  { ft: 300,    kind: 'major', text: 'THE FOSSIL BEDS',                  icon: 'ammonite' },
+  { ft: 70,     kind: 'find',  text: "Mussolini's bunker, under a trapdoor", icon: 'bunker', short: "Mussolini's bunker" },
+  { ft: 223,    kind: 'find',  text: 'roots. a shepherd tree, still drinking', icon: 'root' },
+  { ft: 280,    kind: 'major', text: 'DERINKUYU — a city for 20,000, eighteen floors down', icon: 'city' },
+
+  // --- below human reach: deep time -----------------------------------
   { ft: 500,    kind: 'find',  text: 'ammonites, coiled and patient',    icon: 'ammonite' },
-  { ft: 900,    kind: 'find',  text: 'a coal seam — a forest, flattened', icon: 'coal' },
+  { ft: 984,    kind: 'find',  text: 'Naica — selenite crystals, 37 ft long', icon: 'crystal' },
   { ft: 1600,   kind: 'layer', text: 'shale. it splits like pages' },
   { ft: 2600,   kind: 'find',  text: 'trilobites. 500 million years down', icon: 'trilobite' },
   { ft: 4000,   kind: 'layer', text: 'granite. the crust proper' },
   { ft: 6000,   kind: 'find',  text: 'a diamond pipe, kimberlite',       icon: 'diamond' },
+  { ft: 6496,   kind: 'find',  text: 'a blind springtail. the deepest animal alive', icon: 'springtail' },
+  { ft: 7402,   kind: 'find',  text: 'a dinosaur knucklebone, in a drill core', icon: 'coal', short: 'a dinosaur knucklebone' },
+  { ft: 9500,   kind: 'find',  text: 'water sealed off for two billion years', icon: 'water', short: 'two-billion-year-old water' },
 
   // --- the famous depths. Every number below is real --------------------
   { ft: 12500,  kind: 'major', text: 'THE TITANIC LIES HERE',            icon: 'wreck' },
   { ft: 12766,  kind: 'find',  text: 'Mponeng — deepest mine ever dug',  icon: 'mine' },
+  { ft: 13123,  kind: 'find',  text: 'bacteria eating uranium, in the dark', icon: 'microbe', short: 'bacteria eating uranium' },
   { ft: 20000,  kind: 'layer', text: 'heat. the rock is warm to the touch' },
+  { ft: 21981,  kind: 'find',  text: 'Kola — plankton fossils, four miles down', icon: 'plankton' },
   { ft: 28000,  kind: 'layer', text: 'no light has ever reached this' },
   { ft: 35876,  kind: 'major', text: 'CHALLENGER DEEP — the floor of the world', icon: 'trench' },
 ];

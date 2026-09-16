@@ -471,6 +471,210 @@ const SPRITES = {
     ctx.fillStyle = 'rgba(150,220,255,.3)'; ctx.fillRect(26, 23, 1, 1);
   },
 
+  // Terracotta warrior: a rank of them, the front one whole and the rest
+  // receding. The army only reads as an army in plural, so it is drawn plural.
+  warrior() {
+    const man = (x, s, body, lit) => {                          // s: scale 0..1
+      const top = 20 - 15 * s;
+      poly([[x - 3.2 * s, 30], [x - 3.6 * s, top + 5 * s],      // torso, flaring
+            [x + 3.6 * s, top + 5 * s], [x + 3.2 * s, 30]], body);
+      poly([[x - 3.6 * s, top + 5 * s], [x + 3.6 * s, top + 5 * s],
+            [x + 3 * s, top + 8 * s], [x - 3 * s, top + 8 * s]], lit); // shoulders
+      ell(x, top + 2.4 * s, 2.3 * s, 2.8 * s, body);            // head
+      ell(x - 0.6 * s, top + 1.8 * s, 1.5 * s, 1.9 * s, lit);
+      poly([[x - 2.4 * s, top], [x + 2.4 * s, top],             // topknot/cap
+            [x + 1.6 * s, top - 2 * s], [x - 1.6 * s, top - 2 * s]], body);
+    };
+    man(25, 0.62, '#6B4632', '#82583F');                        // back rank, dim
+    man(19.5, 0.78, '#7A5139', '#946347');
+    man(11, 1.0, '#8C5D42', '#AC7452');                         // front, lit
+    stroke([[11, 22], [11, 29]], '#6B4632', 0.8);               // armour seam
+    stroke([[8.4, 21], [13.6, 21]], '#6B4632', 0.7);
+    ctx.fillStyle = 'rgba(0,0,0,.30)';                          // ground shadow
+    ctx.fillRect(0, 30, 32, 2);
+  },
+
+  // Göbekli Tepe: the T-pillars, carved and then deliberately backfilled
+  pillar() {
+    // The crossbar has to overhang hard — a narrow head just reads as a column.
+    const tee = (x, y, s, face, side) => {
+      poly([[x - 7 * s, y], [x + 7 * s, y],                     // the T head, broad
+            [x + 7 * s, y + 3.4 * s], [x - 7 * s, y + 3.4 * s]], face);
+      poly([[x + 7 * s, y], [x + 7 * s, y + 3.4 * s],
+            [x + 5.4 * s, y + 4 * s], [x + 5.4 * s, y + 0.6 * s]], side);
+      poly([[x - 2.4 * s, y + 3.4 * s], [x + 2.4 * s, y + 3.4 * s],  // the shaft
+            [x + 2.2 * s, 30], [x - 2.2 * s, 30]], face);
+      poly([[x + 2.4 * s, y + 3.4 * s], [x + 2.2 * s, 30],
+            [x + 3.2 * s, 29.4], [x + 3.4 * s, y + 4 * s]], side);
+    };
+    tee(24, 13, 0.60, '#8E8272', '#6B6154');                    // rear pillar
+    tee(10, 7, 0.92, '#A89A86', '#7D7263');                     // near pillar
+    stroke([[8.6, 14], [8.6, 21]], '#7D7263', 0.8);             // carved relief
+    stroke([[8.6, 21], [11, 23]], '#7D7263', 0.8);              // an arm, bent
+    ell(11.2, 17, 1.4, 1.0, '#7D7263');                         // a beast, worn
+    ctx.fillStyle = 'rgba(92,70,44,.55)';                       // the backfill
+    ctx.fillRect(0, 26, 32, 6);
+    stroke([[0, 26], [32, 25.4]], 'rgba(120,94,62,.6)', 1.2);
+  },
+
+  // a bunker: concrete, a blast door, a stair going down into it
+  bunker() {
+    poly([[3, 12], [29, 11], [29, 30], [3, 30]], '#5E5B54');    // the box
+    poly([[3, 12], [29, 11], [29, 14], [3, 15]], '#767268');    // lit top edge
+    poly([[24, 12], [29, 11], [29, 30], [24, 30]], '#4A4841');  // shadowed side
+    poly([[9, 17], [19, 16.4], [19, 30], [9, 30]], '#2A2823');  // doorway, dark
+    poly([[9, 17], [19, 16.4], [19, 18], [9, 18.6]], '#3C3A34');
+    stroke([[14, 18], [14, 29]], '#4A4841', 0.8);               // door seam
+    ell(16.8, 23.5, 1, 1, '#B79A5E');                           // handle
+    for (let i = 0; i < 4; i++)                                 // stair treads
+      ctx.fillStyle = 'rgba(0,0,0,.30)',
+      ctx.fillRect(9, 22 + i * 2, 10, 1);
+    ctx.fillStyle = 'rgba(255,240,200,.07)';                    // grazing light
+    ctx.fillRect(3, 12, 2, 18);
+  },
+
+  // a taproot, still going down after two hundred feet, still finding water
+  root() {
+    stroke([[16, 0], [15, 7], [17, 14], [15.5, 22], [16.5, 32]], '#5A4128', 3.2);
+    stroke([[15.6, 0], [14.6, 7], [16.6, 14], [15.1, 22]], '#74542F', 1.3); // lit side
+    stroke([[16, 6], [11, 9], [7, 8]], '#5A4128', 1.5);         // laterals
+    stroke([[16.4, 13], [21, 16], [25, 15]], '#5A4128', 1.4);
+    stroke([[15.6, 20], [11, 24], [8, 23.4]], '#5A4128', 1.2);
+    stroke([[16.6, 27], [20, 30], [24, 29.6]], '#5A4128', 1.0);
+    stroke([[7, 8], [4, 6.6]], '#6B4E2C', 0.7);                 // fine hairs
+    stroke([[25, 15], [28, 13.6]], '#6B4E2C', 0.7);
+    stroke([[8, 23.4], [5, 22.4]], '#6B4E2C', 0.6);
+    ctx.fillStyle = 'rgba(110,150,170,.20)';                    // the water it found
+    ctx.fillRect(0, 28, 32, 4);
+    ell(6, 29.6, 2.2, 0.9, 'rgba(150,200,220,.28)');
+  },
+
+  // Derinkuyu in section: rooms stacked down, a ventilation shaft through them
+  city() {
+    poly([[0, 4], [32, 3], [32, 32], [0, 32]], '#6B5335');      // the cut rock
+    ctx.fillStyle = 'rgba(0,0,0,.45)';                          // chambers
+    const room = (x, y, rw, rh) => {
+      ctx.fillStyle = '#231B12'; ctx.fillRect(x, y, rw, rh);
+      ctx.fillStyle = 'rgba(255,214,140,.10)'; ctx.fillRect(x, y, rw, 1);
+      ctx.fillStyle = 'rgba(240,180,76,.55)';                   // a lamp burning
+      ctx.fillRect(x + 1.4, y + rh - 2.4, 1.2, 1.2);
+    };
+    // Irregular on purpose: even spacing made this read as shelving. Real
+    // Derinkuyu is rooms hacked out wherever the tuff allowed.
+    room(2.5, 6.5, 8, 4);    room(18, 8, 11, 5.5);
+    room(4, 13.5, 6.5, 6.5); room(21, 16.5, 8, 4);
+    room(2, 23, 9.5, 4.5);   room(18.5, 22.5, 7, 6.5);
+    ctx.fillStyle = '#1A140D';                                  // ventilation shaft
+    ctx.fillRect(13, 3, 5, 29);
+    ctx.fillStyle = 'rgba(255,214,140,.10)'; ctx.fillRect(13, 3, 1.4, 29);
+    ctx.fillStyle = 'rgba(0,0,0,.5)'; ctx.fillRect(16.6, 3, 1.4, 29);
+    for (const y of [11, 20.5])                                 // connecting stairs
+      stroke([[10.5, y], [13, y + 2.2]], '#3E3222', 1.3),
+      stroke([[18, y + 1], [16.4, y + 3]], '#3E3222', 1.3);
+    // the round stone door — the thing Derinkuyu is actually known for
+    ell(11.5, 18.5, 2.6, 2.6, '#8A6F46');
+    ell(10.8, 17.8, 1.7, 1.7, '#A6884F');
+    ell(11.5, 18.5, 0.8, 0.8, '#2A2016');
+  },
+
+  // Naica: selenite blades, far bigger than the people who found them
+  crystal() {
+    const blade = (pts, face, lit) => { poly(pts, face); poly(lit[0], lit[1]); };
+    blade([[2, 30], [9, 4], [13, 5], [9, 30]], '#CFE0DA',       // tallest blade
+          [[[9, 4], [13, 5], [11.5, 30], [9, 30]], '#9FBDB4']);
+    blade([[12, 31], [21, 9], [25, 11], [19, 31]], '#E2EFEA',
+          [[[21, 9], [25, 11], [22, 31], [19, 31]], '#B2CCC3']);
+    blade([[21, 31], [28, 16], [31, 18], [27, 31]], '#BFD4CC',
+          [[[28, 16], [31, 18], [29, 31], [27, 31]], '#93B2A8']);
+    stroke([[9, 6], [9, 29]], 'rgba(255,255,255,.45)', 0.7);    // specular edges
+    stroke([[21, 11], [20, 30]], 'rgba(255,255,255,.55)', 0.8);
+    ctx.fillStyle = 'rgba(255,255,255,.18)';                    // glare
+    ctx.fillRect(10, 8, 2, 9);
+  },
+
+  // the deepest animal alive: blind, wingless, and about a millimetre long
+  springtail() {
+    ell(15, 19, 7.5, 4.2, '#C9C2B0', -0.18);                    // body, segmented
+    ell(13.5, 17.6, 6.2, 3.0, '#E4DDC9', -0.18);                // lit back
+    ell(22.6, 20.6, 3.0, 2.4, '#B5AD9A');                       // head
+    stroke([[24.6, 19.4], [29, 16.6]], '#B5AD9A', 0.8);         // antennae
+    stroke([[24.6, 21.2], [29, 20.2]], '#B5AD9A', 0.8);
+    for (let i = 0; i < 3; i++) {                               // legs
+      stroke([[16 + i * 3.4, 22], [15 + i * 3.4, 26.4]], '#A79F8C', 0.8);
+      stroke([[15 + i * 3.4, 26.4], [13.4 + i * 3.4, 27.2]], '#A79F8C', 0.6);
+    }
+    stroke([[8.5, 21], [4, 25], [6.5, 26.6]], '#B5AD9A', 1.0);  // the furca
+    for (let i = 1; i < 4; i++)                                 // segment lines
+      stroke([[11 + i * 3, 15.6], [10.4 + i * 3, 22.4]], 'rgba(150,140,120,.45)', 0.5);
+  },
+
+  // two billion year old water: a seam of it, sealed in the rock
+  water() {
+    poly([[0, 0], [32, 0], [32, 13], [0, 15]], '#2A2620');      // rock above
+    poly([[0, 22], [32, 20], [32, 32], [0, 32]], '#241F1A');    // rock below
+    ctx.fillStyle = '#2E4A52';                                  // the seam
+    ctx.beginPath();
+    ctx.moveTo(0, 15); ctx.lineTo(32, 13); ctx.lineTo(32, 20); ctx.lineTo(0, 22);
+    ctx.closePath(); ctx.fill();
+    stroke([[0, 15], [32, 13]], 'rgba(150,200,215,.35)', 1.0);  // meniscus, lit
+    stroke([[0, 22], [32, 20]], 'rgba(0,0,0,.4)', 1.0);
+    ell(9, 17.6, 3.6, 1.4, 'rgba(170,215,230,.22)');            // sheen
+    ell(23, 16.4, 2.4, 1.0, 'rgba(170,215,230,.16)');
+    ctx.fillStyle = 'rgba(190,225,235,.5)';                     // dissolved gas
+    ctx.fillRect(13, 18, 1.2, 1.2);
+    ctx.fillRect(27, 17, 1, 1);
+    ctx.fillRect(5, 19, 1, 1);
+  },
+
+  // bacteria living on uranium decay: rods in a fracture, faintly lit
+  microbe() {
+    poly([[0, 0], [32, 0], [32, 11], [0, 14]], '#2B2722');      // fracture walls
+    poly([[0, 21], [32, 18], [32, 32], [0, 32]], '#231F1B');
+    ctx.fillStyle = '#12100E';                                  // the void between
+    ctx.beginPath();
+    ctx.moveTo(0, 14); ctx.lineTo(32, 11); ctx.lineTo(32, 18); ctx.lineTo(0, 21);
+    ctx.closePath(); ctx.fill();
+    const rod = (x, y, rot) => {                                // one bacterium
+      ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+      ell(0, 0, 3.0, 1.15, '#8FCBA8');
+      ell(-0.7, -0.35, 2.0, 0.6, '#C6ECD6');
+      ctx.restore();
+    };
+    rod(8, 16.6, 0.22); rod(17, 15.2, -0.32); rod(25, 14.6, 0.14); rod(13, 18.4, -0.1);
+    ctx.fillStyle = 'rgba(143,203,168,.13)';                    // their faint glow
+    ctx.fillRect(0, 12, 32, 9);
+    ctx.fillStyle = '#7FE04A';                                  // uranium speck
+    ctx.fillRect(21, 19.6, 1.4, 1.4);
+    ctx.fillStyle = 'rgba(127,224,74,.30)';
+    ctx.fillRect(19.6, 18.2, 4.2, 4.2);
+  },
+
+  // Kola: plankton fossils, four miles down, in rock that should not hold them
+  plankton() {
+    poly([[0, 0], [32, 0], [32, 32], [0, 32]], '#241C24');      // metamorphic rock
+    stroke([[0, 8], [32, 5]], 'rgba(120,100,120,.30)', 1.0);    // foliation, folded
+    stroke([[0, 17], [32, 13]], 'rgba(120,100,120,.24)', 1.0);
+    stroke([[0, 26], [32, 23]], 'rgba(120,100,120,.20)', 1.0);
+    // the shells themselves: coccoliths and a diatom, chalk-white in the dark
+    const disc = (x, y, r) => {
+      ell(x, y, r, r * 0.82, '#EFE9DC');
+      ell(x, y, r * 0.52, r * 0.42, '#C3BBA9');
+      for (let i = 0; i < 8; i++) {                             // radial plates
+        const a = (i / 8) * Math.PI * 2;
+        stroke([[x + Math.cos(a) * r * 0.55, y + Math.sin(a) * r * 0.45],
+                [x + Math.cos(a) * r, y + Math.sin(a) * r * 0.82]], '#B5AC98', 0.5);
+      }
+    };
+    disc(10, 11, 4.4);
+    disc(23, 21, 3.4);
+    ell(22, 9, 3.6, 2.0, '#E4DCCB', 0.5);                       // a diatom, oblong
+    stroke([[19.2, 7.6], [24.8, 10.4]], '#B5AC98', 0.5);
+    ell(9, 24, 2.2, 1.4, '#D8D0BF', -0.3);
+    ctx.fillStyle = 'rgba(239,233,220,.5)';                     // fragments
+    ctx.fillRect(16, 27, 1.4, 1.4);
+    ctx.fillRect(5, 17, 1.2, 1.2);
+  },
+
   // the surface: turf in section, with roots going down
   grass() {
     poly([[0,18],[32,17],[32,32],[0,32]], '#4A3524');         // soil below
@@ -675,11 +879,16 @@ function drawWorld() {
   }
 
   // --- strata: artifacts and layer labels --------------------------------
-  for (const s of STRATA) {
-    const y = depthToY(s.ft) - camY;
-    if (y < -30 || y > h + 30) continue;
+  // How much room a sprite has before it runs into the shaft. Finds sit in the
+  // ground beside the hole, never over it.
+  const gutter = Math.max(0, shaftX - 22);
 
-    const side = (STRATA.indexOf(s) % 2) === 0;
+  for (let si = 0; si < STRATA.length; si++) {
+    const s = STRATA[si];
+    const y = depthToY(s.ft) - camY;
+    if (y < -90 || y > h + 90) continue;
+
+    const side = (si % 2) === 0;
     const tx = side ? 18 : w - 18;
     const major = s.kind === 'major';
     const find = s.kind === 'find';
@@ -687,39 +896,53 @@ function drawWorld() {
     // digger stays hidden — the descent should uncover things, not list them.
     if (diggerY < s.ft - 0.01) continue;
 
-    // The find sits just outside the shaft wall, in the ground. Headline
-    // depths get a larger object — they are the ones worth stopping at.
+    // The find sits just outside the shaft wall, in the ground. Big enough to
+    // actually read as an object — a pot, a road, a mammoth — because the
+    // object IS the label. The old 40px sprites needed a caption to be
+    // identifiable, which is exactly the crutch we are removing.
     if (s.icon) {
-      const size = major ? 52 : 40;
-      const ix = side ? shaftX - size - 10 : shaftX + shaftW + 10;
+      // Sprites alternate sides, so the only thing a find can collide with is
+      // the entry two along. On the log scale the shallow finds (3/7/13/16/20ft)
+      // bunch up, and at full size they overlapped into a pile of junk — so each
+      // one is capped by the room between its same-side neighbours.
+      let room = Infinity;
+      for (const j of [si - 2, si + 2]) {
+        const n = STRATA[j];
+        if (n) room = Math.min(room, Math.abs(depthToY(n.ft) - depthToY(s.ft)));
+      }
+      const size = Math.max(34, Math.min(major ? 132 : 104, gutter * 0.86, room * 0.92));
+      const ix = side ? shaftX - size - 14 : shaftX + shaftW + 14;
       drawSprite(s.icon, ix, y - size / 2, size, s.ft);
     }
 
-    // On a phone there is no room beside the shaft for a line of prose — the
-    // labels would run under the verdict copy. Keep the sprites, drop the text
-    // for everything but the headline depths.
+    // Text is now the exception, not the rule. Ordinary finds speak for
+    // themselves; only the headline depths and the wordless layer bands (which
+    // have no sprite to look at) get a line. This is what kills the wall of
+    // prose running down both margins.
+    const captioned = major || (!find && !s.icon);
+    if (!captioned) continue;
     if (w < 560 && !major) continue;
 
-    ctx.font = major ? '500 13px "DM Mono", monospace' : '500 12px "DM Mono", monospace';
+    // Layer bands are the quiet ones — they mark a change in the ground, not a
+    // thing you found. Majors are landmarks and get the amber.
+    ctx.font = major ? '500 13px "DM Mono", monospace' : '400 11px "DM Mono", monospace';
     ctx.textAlign = side ? 'left' : 'right';
     // A drop shadow rather than more opacity: the labels sit on busy, varying
     // soil, and raising alpha alone still loses them against the lighter grit.
     ctx.shadowColor = 'rgba(0,0,0,.95)';
     ctx.shadowBlur = 4;
     ctx.shadowOffsetY = 1;
-    ctx.fillStyle = major ? 'rgba(255,214,126,1)'
-                  : find  ? 'rgba(250,236,210,1)'
-                          : 'rgba(232,214,184,.92)';
+    ctx.fillStyle = major ? 'rgba(255,214,126,1)' : 'rgba(216,196,166,.7)';
     ctx.fillText(s.text, tx, y);
 
     // depth tag + tick
     ctx.font = '9px "DM Mono", monospace';
-    ctx.fillStyle = major ? 'rgba(255,214,126,.95)' : 'rgba(236,214,176,.85)';
+    ctx.fillStyle = major ? 'rgba(255,214,126,.95)' : 'rgba(216,196,166,.55)';
     ctx.fillText(ft(s.ft), tx, y + 13);
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetY = 0;
-    ctx.fillStyle = major ? 'rgba(255,214,126,.8)' : 'rgba(224,200,160,.5)';
+    ctx.fillStyle = major ? 'rgba(255,214,126,.8)' : 'rgba(224,200,160,.35)';
     ctx.fillRect(side ? 18 : w - 66, y + 20, 48, major ? 2 : 1);
   }
   ctx.textAlign = 'left';
@@ -809,10 +1032,15 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
+/* The HUD band has room for a few words, and the strata prose does not fit —
+   a hard slice at 34 chars cut entries mid-word ("STILL DRIN"). Entries carry
+   a `short` for this readout; anything without one falls back to the clause
+   before the first dash or full stop, which is where these lines break anyway. */
 function currentStratum(f) {
   let cur = STRATA[0];
   for (const s of STRATA) if (f >= s.ft) cur = s;
-  return cur.text.toUpperCase().slice(0, 34);
+  const label = cur.short || cur.text.split(/\s+[—.]\s*|[.]\s+/)[0];
+  return label.toUpperCase().slice(0, 34);
 }
 
 function diveTo(feet) {
@@ -916,15 +1144,11 @@ function render() {
 
 function renderIntro() {
   stage.innerHTML = `
-    <p class="eyebrow">⛏ SEVEN PROMPTS · 25 SECONDS EACH</p>
     <h1 class="prompt">STRATA</h1>
     <p class="intro-copy">
-      Name one thing that fits. Obvious answers barely scratch the topsoil.
-      The rarer the answer, the deeper you dig — and every answer digs
-      <b>exponentially</b> further than the last.
-      <b>The clever one you're proud of? Everyone thought of that too.</b>
+      Name one thing nobody else would.
     </p>
-    <p class="intro-foot">A perfect run reaches ${ft(BEDROCK)} — the Challenger Deep.</p>
+    <p class="intro-foot">SEVEN PROMPTS · 25 SECONDS EACH · ${ft(BEDROCK)} TO THE BOTTOM</p>
     <button id="go">START DIGGING</button>
   `;
   document.getElementById('go').onclick = begin;

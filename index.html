@@ -266,7 +266,15 @@ button.ghost:hover{background:rgba(122,74,40,.35);box-shadow:none}
 .row.big .p{color:var(--hot)}
 .rowbtns{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
 
-.intro-copy{font-size:13px;color:var(--dim);line-height:1.8;max-width:34ch;margin:0 0 14px}
+/* One line, so it gets to be a real line — not body copy. The title screen
+   used to explain the scoring curve before you had played once; the rules are
+   learnable in a single round, and the premise is the only thing worth
+   saying up front. */
+.intro-copy{
+  font-size:clamp(15px,3vw,19px);color:var(--bone);line-height:1.5;
+  max-width:22ch;margin:12px 0 26px;
+  text-shadow:0 2px 4px rgba(13,10,8,.9);
+}
 .intro-copy b{color:var(--bone);font-weight:400}
 .intro-foot{
   font-size:10px;letter-spacing:.16em;color:var(--amber);opacity:.72;
