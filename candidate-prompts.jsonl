@@ -54,3 +54,27 @@
 {"q":"Name an art movement","expected_common":["Impressionism","Cubism","Surrealism"],"expected_rare":["Suprematism","Fauvism","Rayonism"]}
 {"q":"Name an internet protocol","expected_common":["HTTP","FTP","TCP"],"expected_rare":["BGP","MQTT","WebSocket"]}
 {"q":"Name a medical specialty","expected_common":["surgery","pediatrics","dermatology"],"expected_rare":["rheumatology","nephrology","otolaryngology"]}
+{"q":"Name a classical composer","expected_common":["Bach","Mozart","Beethoven"],"expected_rare":["Palestrina","Tallis","Gesualdo"]}
+{"q":"Name a synonym for happy","expected_common":["glad","joyful","cheerful"],"expected_rare":["ebullient","beatific","blithe"]}
+{"q":"Another word for big","expected_common":["large","huge","enormous"],"expected_rare":["gargantuan","colossal","prodigious"]}
+{"q":"Name a word that means to throw away","expected_common":["discard","dump","trash"],"expected_rare":["jettison","slough","deaccession"]}
+{"q":"Name a city","expected_common":["London","Paris","Tokyo"],"expected_rare":["Ljubljana","Ouagadougou","Tbilisi"]}
+{"q":"Name a country","expected_common":["France","Canada","Japan"],"expected_rare":["Bhutan","Uruguay","Suriname"]}
+{"q":"Name a language","expected_common":["English","Spanish","French"],"expected_rare":["Swahili","Icelandic","Basque"]}
+{"q":"Name a river","expected_common":["Nile","Amazon","Mississippi"],"expected_rare":["Okavango","Limpopo","Tisza"]}
+{"q":"Name an island","expected_common":["Hawaii","Greenland","Iceland"],"expected_rare":["Socotra","Bora Bora","Svalbard"]}
+{"q":"Name a mountain","expected_common":["Everest","Kilimanjaro","Denali"],"expected_rare":["Aconcagua","Mount Elbrus","Table Mountain"]}
+{"q":"Name a musical genre","expected_common":["rock","pop","jazz"],"expected_rare":["shoegaze","bebop","drum and bass"]}
+{"q":"Name a film genre","expected_common":["comedy","drama","horror"],"expected_rare":["noir","mockumentary","kaiju film"]}
+{"q":"Name a cocktail","expected_common":["martini","margarita","mojito"],"expected_rare":["aviation","corpse reviver","boulevardier"]}
+{"q":"Name a sea creature","expected_common":["dolphin","shark","whale"],"expected_rare":["nudibranch","nautilus","siphonophore"]}
+{"q":"Name a berry","expected_common":["strawberry","blueberry","raspberry"],"expected_rare":["cloudberry","gooseberry","serviceberry"]}
+{"q":"Name a pastry","expected_common":["croissant","donut","danish"],"expected_rare":["kouign-amann","sfogliatelle","babka"]}
+{"q":"Name a condiment","expected_common":["ketchup","mustard","mayonnaise"],"expected_rare":["remoulade","chermoula","nuoc cham"]}
+{"q":"Name a type of restaurant","expected_common":["diner","pizzeria","café"],"expected_rare":["brasserie","izakaya","trattoria"]}
+{"q":"Name a type of store","expected_common":["grocery store","bookstore","department store"],"expected_rare":["haberdashery","apothecary","fishmonger"]}
+{"q":"Name a seafood","expected_common":["shrimp","salmon","crab"],"expected_rare":["conch","cuttlefish","geoduck"]}
+{"q":"Name a snack food","expected_common":["chips","popcorn","pretzels"],"expected_rare":["papadum","socca","chicharrón"]}
+{"q":"Name a programming language","expected_common":["Python","Java","C++"],"expected_rare":["Erlang","Haskell","Fortran"]}
+{"q":"Name a space mission","expected_common":["Apollo 11","Voyager 1","Hubble"],"expected_rare":["Rosetta","Hayabusa","Galileo"]}
+{"q":"Name a literary genre","expected_common":["mystery","romance","science fiction"],"expected_rare":["bildungsroman","picaresque novel","magical realism"]}
