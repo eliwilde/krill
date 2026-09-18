@@ -3,9 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.js",
-    "deploy": "node build.js && wrangler deploy",
-    "prepare": "node build.js"
+    "test": "node test-scoring.js",
+    "check": "node prompt-schema.js",
+    "audit": "node audit-tiers.js",
+    "lexicon": "node build-lexicon.js",
+    "build": "node build-lexicon.js && node test-scoring.js && node build.js",
+    "deploy": "node build-lexicon.js && node test-scoring.js && node build.js && wrangler deploy",
+    "prepare": "node build-lexicon.js"
   },
   "devDependencies": {
     "wrangler": "^4.131.2"

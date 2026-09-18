@@ -1,5 +1,6 @@
 import { PROMPTS as HAND } from './prompts.js';
 import { NORMS_PROMPTS } from './norms-prompts.js';
+import { passesGate, loadLexicon } from './prompt-schema.js';
 
 /* The bank is two halves. prompts.js is hand-written: my judgement of what
  * people commonly answer. norms-prompts.js is generated from measured human
@@ -22,10 +23,49 @@ const REJECTS = {
   'Name a weapon': ['fist', 'hand', 'foot', 'war', 'army', 'soldier', 'violence', 'water', 'fire', 'air', 'earth'],
 };
 
+/* Openness defaults, applied at merge time.
+ *
+ * Previously inferred inside the scorer as `cat !== 'norms'`, which is a trap
+ * for future prompts: every hand-written prompt was forced CLOSED and every
+ * generated one OPEN, whatever it actually was. A prompt may now declare
+ * `closed` for itself; these are only the fallbacks for prompts that do not.
+ *
+ * The defaults still encode the real distinction — prompts.js is built on
+ * finite rosters (24 Greek letters, 12 South American countries) while the
+ * norms bank is everyday categories with long tails (bird, fruit, occupation)
+ * — but a prompt that differs can now just say so, and the validator in
+ * prompt-schema.js reports anything relying on the fallback. */
+const DEFAULT_GATE = 'wordlike';
+
+function withDefaults(p, closedByDefault) {
+  const closed = typeof p.closed === 'boolean' ? p.closed : closedByDefault;
+  const out = { ...p, closed };
+  if (!closed && !out.gate) out.gate = DEFAULT_GATE;
+  if (REJECTS[p.q]) out.reject = [...(p.reject ?? []), ...REJECTS[p.q]];
+  return out;
+}
+
 const PROMPTS = [
-  ...NORMS_PROMPTS,
-  ...HAND.filter((h) => !NORMS_PROMPTS.some((n) => n.q === h.q)),
-].map((p) => (REJECTS[p.q] ? { ...p, reject: [...(p.reject ?? []), ...REJECTS[p.q]] } : p));
+  ...NORMS_PROMPTS.map((p) => withDefaults(p, false)),
+  ...HAND.filter((h) => !NORMS_PROMPTS.some((n) => n.q === h.q))
+    .map((p) => withDefaults(p, true)),
+];
+
+/* Load the real-word lexicon once at module load.
+ *
+ * Two paths, because the data lives in two forms. In the browser we import the
+ * generated lexicon.js (517 KB, built by build-lexicon.js); under Node we let
+ * prompt-schema.js read prevalence.tsv directly, which is the full 61k lemmas
+ * and keeps the tests honest against the real source.
+ *
+ * Either way it is non-fatal: with no lexicon the gates fall back to shape
+ * checks and the game still runs, just slightly more permissive. */
+try {
+  const { LEXICON_WORDS } = await import('./lexicon.js');
+  loadLexicon(LEXICON_WORDS);
+} catch {
+  loadLexicon();   // no generated lexicon: read prevalence.tsv, or fall back
+}
 
 /* ---------------------------------------------------------------- config */
 
@@ -181,6 +221,13 @@ export function scoreAnswer(prompt, raw) {
    * measured. We still run NO dictionary check: that would punish genuine
    * obscure answers, which is the opposite of the point. */
   if (isClosedSet(prompt)) return { tier: 'none', ...TIERS.none };
+
+  /* Open set, unlisted answer. Until now this paid UNCHARTED unconditionally,
+   * which meant "gorbleflax" and "hoatzin" both scored 70 — typing mash was a
+   * reliable 70% of maximum. The gate separates the two: a word the lexicon
+   * knows, or one shaped like a real English word, is credited; a keyboard
+   * mash is not. See prompt-schema.js for why the lexicon only ever promotes. */
+  if (!passesGate(prompt, guess)) return { tier: 'none', ...TIERS.none };
   return { tier: 'unverified', ...UNVERIFIED };
 }
 
@@ -266,8 +313,10 @@ function isWrongShape(prompt, guess) {
  * CLOSED, which is the rule prompts.js already documents for itself: every
  * prompt in it is a finite roster ~31 entries can actually cover. */
 function isClosedSet(prompt) {
+  // Set explicitly by withDefaults() at merge time, so by the time a prompt
+  // reaches the scorer this is always a real boolean rather than an inference.
   if (typeof prompt.closed === 'boolean') return prompt.closed;
-  return prompt.cat !== 'norms';
+  return prompt.cat !== 'norms';   // fallback for a prompt passed in directly
 }
 
 /* Words from the prompt text itself, minus the framing verbs. */

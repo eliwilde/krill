@@ -6,3 +6,7 @@ node_modules/
 # deploy staging — rebuilt from source by `node build.js`
 public/
 .wrangler/
+
+# generated from prevalence.tsv by `npm run lexicon`. 520 KB of derived data,
+# fully reproducible, and build.js fails loudly if it is missing.
+lexicon.js
