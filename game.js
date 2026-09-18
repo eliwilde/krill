@@ -1,6 +1,6 @@
 import { PROMPTS as HAND } from './prompts.js';
 import { NORMS_PROMPTS } from './norms-prompts.js';
-import { passesGate, loadLexicon, inLexicon } from './prompt-schema.js';
+import { passesGate, loadLexicon, inLexicon, isTypoOf, resolveAlias } from './prompt-schema.js';
 
 /* The bank is two halves. prompts.js is hand-written: my judgement of what
  * people commonly answer. norms-prompts.js is generated from measured human
@@ -32,6 +32,47 @@ const REJECTS = {
   "Name a palindrome that's a real English dictionary word": ['palindrome'],
 };
 
+/* US/UK spelling and vocabulary aliases, per prompt.
+ *
+ * The norms bank is generated from UK and (older) US studies, so a modern US
+ * player routinely types the other country's word and scores nothing for a
+ * correct answer: "drywall" is listed only as "plasterboard", "eggplant" only
+ * as "aubergine". An alias resolves to the listed answer and scores exactly
+ * what it scores.
+ *
+ * Kept here because norms-prompts.js is generated and would lose hand edits. */
+const ALIASES = {
+  'Name a building material': {
+    drywall: 'plasterboard', sheetrock: 'plasterboard',
+    aluminum: 'aluminium',
+    // "rebar" was here mapped to "steel beams" — dropped. It is not actually the
+    // same thing (rebar is reinforcing bar, not a beam), and it matched "bars"
+    // by fragment before the alias resolved, so it scored 15 instead of 85.
+  },
+  'Name a vegetable': { eggplant: 'aubergine', zucchini: 'courgette', arugula: 'rocket' },
+  'Name a fruit': { rockmelon: 'cantaloupe' },
+  'Name a kitchen appliance': { stove: 'cooker', hob: 'cooker' },
+  'Name a type of boat or ship': { rowboat: 'rowing boat' },
+  'Name a car part': { hood: 'bonnet', trunk: 'boot', windshield: 'windscreen' },
+  'Name a tool': { wrench: 'spanner', flashlight: 'torch' },
+};
+
+/* TWO RULES for adding to ALIASES, both learned by getting them wrong.
+ *
+ * 1. Never alias a word that is ALREADY a listed answer. "pants" and "sweater"
+ *    are both listed for clothing, so aliasing them to "trousers"/"jumper"
+ *    overwrote their own correct, shallower tiers. ENFORCED by the merge filter
+ *    below — a violation is silently dropped and the test suite reports it.
+ *
+ * 2. Only alias words that are genuinely the SAME answer, and check the tier you
+ *    are resolving into. "sneakers" -> "trainers" is a true synonym pair, but
+ *    "trainers" sits at `deep` in this UK-sourced list, so the alias would pay
+ *    FOSSIL BED (85) for an everyday American word. It was dropped for that
+ *    reason. A CURATION judgement, not a mechanical rule: "drywall" ->
+ *    "plasterboard" is also deep and IS right to keep, because drywall is not a
+ *    word a player reaches for lightly — it is simply the US name for the thing.
+ *    Ask: would a typical player have earned this tier by naming this? */
+
 /* Openness defaults, applied at merge time.
  *
  * Previously inferred inside the scorer as `cat !== 'norms'`, which is a trap
@@ -51,6 +92,31 @@ function withDefaults(p, closedByDefault) {
   const out = { ...p, closed };
   if (!closed && !out.gate) out.gate = DEFAULT_GATE;
   if (REJECTS[p.q]) out.reject = [...(p.reject ?? []), ...REJECTS[p.q]];
+  if (ALIASES[p.q]) out.aliases = { ...(p.aliases ?? {}), ...ALIASES[p.q] };
+
+  /* Drop any alias pointing at an answer this prompt does not list. The tables
+   * above are keyed by prompt text and edited by hand, so a stale entry is a
+   * real risk — and an alias resolving to nothing scores a correct answer as
+   * zero, which is worse than having no alias at all. Reported by
+   * `npm run check`, which validates the same rule against the source files. */
+  if (out.aliases) {
+    // Tier names inlined: MATCH_ORDER and normalise() are declared further down
+    // and this runs at module load, so referencing them here threw
+    // "Cannot access 'MATCH_ORDER' before initialization" and broke every import.
+    const listed = new Set();
+    for (const t of ['surface', 'tooclever', 'common', 'good', 'deep']) {
+      for (const e of out[t] ?? []) listed.add(String(e).toLowerCase().trim());
+    }
+    out.aliases = Object.fromEntries(
+      Object.entries(out.aliases).filter(([alias, canonical]) => {
+        const a = String(alias).toLowerCase().trim();
+        const c = String(canonical).toLowerCase().trim();
+        if (!listed.has(c)) return false;   // target must exist to resolve to
+        if (listed.has(a)) return false;    // rule 1: alias is its own answer
+        return true;
+      }),
+    );
+  }
   return out;
 }
 
@@ -119,11 +185,22 @@ export const TIERS = {
   unlisted:  { pts: 100, label: 'BEDROCK',      note: 'Nobody else went here.' },
 };
 
-/* An unlisted answer on an OPEN set is probably a real answer we never wrote
- * down, so it still pays — but not more than a listed FOSSIL BED, because we
- * cannot verify it. Paying 100 for anything unrecognised made typing "yawn"
- * the highest-scoring move in the game. */
-const UNVERIFIED = { pts: 70, label: 'UNCHARTED', note: 'Off our maps. We will take your word for it.' };
+/* An unlisted answer on an OPEN set may be a real answer we never wrote down,
+ * so it pays — but it must pay LESS than the shallowest thing we measured.
+ *
+ * It used to pay 70, above CLAY and SHALE, and that made truncation a dominant
+ * strategy: "whis" scored 70 while "whiskey" scored 10, "poly" beat "polyester"
+ * 70 to 60, "red" beat "red meat". Measured across the open bank, there were
+ * 5,469 cases where an unlisted FRAGMENT of a listed answer outscored the
+ * answer itself. A player who learned this would stop naming things and start
+ * typing four-letter stubs.
+ *
+ * 8 points is below TOPSOIL's 10, so naming the obvious thing always beats
+ * gesturing at something we cannot check. It is still clearly above zero,
+ * because an unlisted answer on an open set often IS real and should not be
+ * called wrong. The reward for genuine obscurity comes from the deep tiers of
+ * the curated lists, which is where the measured data lives. */
+const UNVERIFIED = { pts: 8, label: 'UNCHARTED', note: 'Off our maps — we cannot check this one.' };
 
 const MATCH_ORDER = ['surface', 'tooclever', 'common', 'good', 'deep'];
 
@@ -164,19 +241,67 @@ function matchStrength(entry, guess) {
     return false;
   };
 
-  if (guess.length < 4) return 0;
-
   // A guess that contains a listed entry is the MORE specific answer
   // ("double-headed eagle" contains "eagle"), so it outranks the reverse
   // case, where the guess is only a fragment of a longer entry ("double"
   // inside "double-headed eagle" — that is not an answer, just a word).
-  if (contains(guess, e)) return 500 - Math.abs(e.length - guess.length);
+  if (guess.length >= 4 && contains(guess, e)) {
+    return 500 - Math.abs(e.length - guess.length);
+  }
+
+  /* The guess is a fragment of a listed entry. The old rule required the
+   * fragment to carry most of the entry's CHARACTERS (guess*2 >= entry), which
+   * scored "gantt", "venn", "sankey", "pie" and "bar" as NOTHING — every one a
+   * correct answer to "name a type of graph or chart". Nobody says "Venn
+   * diagram" out loud when the category is already diagrams; they say "Venn".
+   *
+   * What actually matters is whether the fragment is the DISTINCTIVE word. In
+   * "gantt chart", "bar chart", "pie chart", "venn diagram", the second word is
+   * the generic category noun — it is doing no identifying work, and it is
+   * usually a word from the prompt itself. So a fragment counts when it covers
+   * every word of the entry except generic ones.
+   *
+   * The reverse case is still excluded: "double" inside "double-headed eagle"
+   * is a modifier, not the head noun, and modifiers are not answers. */
   if (contains(e, guess)) {
-    // Fragment of a multi-word entry only counts if it carries most of it.
+    const entryWords = words(e);
+    const guessWords = words(guess);
+    if (guessWords.length >= entryWords.length) return 0;   // no fragment at all
+
+    const remainder = entryWords.filter((w) => !guessWords.includes(w));
+    // Every leftover word is generic filler -> the guess carries the meaning.
+    if (remainder.length && remainder.every((w) => GENERIC_WORDS.has(w))) {
+      return 180 - (e.length - guess.length);
+    }
+    // Otherwise fall back to the character-coverage rule, which correctly
+    // rejects a lone modifier while still accepting "chow fun" in "beef chow
+    // fun". Short fragments are never enough on their own.
+    if (guess.length < 4) return 0;
     return guess.length * 2 >= e.length ? 200 - (e.length - guess.length) : 0;
   }
   return 0;
 }
+
+/* Category nouns that carry no identifying information: they name the KIND of
+ * thing the prompt already asked for. A guess that omits one of these has still
+ * named the answer — "gantt" for "gantt chart", "venn" for "venn diagram".
+ *
+ * Kept narrow on purpose. A word belongs here only if it is the generic head of
+ * a compound answer across a whole category, never if it distinguishes one
+ * answer from another. "eagle" is not here: "bald eagle" and "golden eagle" are
+ * different birds, and "eagle" alone is its own answer. */
+const GENERIC_WORDS = new Set([
+  'chart', 'graph', 'plot', 'diagram', 'map',        // graphs and charts
+  'knot', 'hitch', 'bend',                           // knots
+  'paper',                                            // papers
+  'strait', 'channel', 'passage',                     // straits
+  'chore',                                            // chores
+  'dwelling',                                         // dwellings
+  'particle',                                         // subatomic particles
+  'fallacy',                                          // logical fallacies
+  'device',                                           // literary devices
+  'gourd', 'bag', 'glass',                            // drinking vessels
+]);
 
 function bestInList(list, guess) {
   if (!list) return 0;
@@ -223,12 +348,27 @@ const VERIFIERS = {
     return raw.replace(/[^a-z]/g, '').length === 4 ? null : false;
   },
 
+  /* -phobia and -ology are open categories (hundreds of real members each), so
+   * closing them would reject genuine answers. But the suffix alone is not
+   * enough: "lassophobia" is a made-up word with a real ending, and
+   * "scientology" ends in -ology while being a religion, not a science.
+   *
+   * So require BOTH the suffix and that the lexicon knows the whole word. That
+   * keeps real obscure answers (nomophobia, emetophobia, speleology,
+   * campanology are all real lemmas) while rejecting coinages. An unknown word
+   * with the right ending returns false rather than null: on these two prompts
+   * the suffix makes fabrication trivially easy, so the benefit of the doubt
+   * does more harm than good. */
   "Name a phobia (its formal name, like 'arachnophobia')": (raw) => {
-    return /phobia$/.test(raw) ? null : false;
+    if (!/phobia$/.test(raw)) return false;
+    return inLexicon(raw) ? true : false;
   },
 
   'Name a branch of science ending in -ology': (raw) => {
-    return /ology$/.test(raw) ? null : false;
+    if (!/ology$/.test(raw)) return false;
+    // Named religions and ideologies end in -ology but are not sciences.
+    if (/^(scientolog|astrolog|numerolog|theolog|mytholog)/.test(raw)) return false;
+    return inLexicon(raw) ? true : false;
   },
 };
 
@@ -250,35 +390,87 @@ function verify(prompt, raw) {
 /* --------------------------------------------------------------- scoring */
 
 export function scoreAnswer(prompt, raw) {
-  const guess = normalise(raw);
+  /* Aliases resolve before anything else, so an alias behaves in every respect
+   * like the answer it stands for — same tier, same rejects, same verifier.
+   * "czechia" IS "czech republic"; it must not be a second, deeper answer. */
+  const guess = resolveAlias(prompt, normalise(raw));
   if (!guess) return { tier: 'none', ...TIERS.none };
 
   // Checked before matching: the prompt's own subject word must not sneak in
   // as a fragment of a listed entry ("cheese" inside "blue cheese").
   if (isObviouslyWrong(prompt, guess)) return { tier: 'none', ...TIERS.none };
 
-  /* A mechanical verifier outranks everything below, including the lists: if
-   * the category is decidable, a definite NO is definite. "river" is not a
-   * palindrome and no amount of list-matching should make it one. */
   const verdict = verify(prompt, raw);
-  if (verdict === false) return { tier: 'none', ...TIERS.none };
 
-  // Best match wins, not first match. On a tie the deeper tier takes it —
-  // if an answer genuinely sits in two lists, the player gets the benefit.
+  // Best match wins, not first match. On a tie the SHALLOWER tier takes it —
+  // see the note below on "blue".
   let bestTier = null;
   let bestScore = 0;
 
+  /* Strictly greater, not >=. With >=, an equally-good match in a DEEPER tier
+   * overwrote a shallower one, so an ambiguous fragment was paid at the best
+   * tier it could reach: "blue" hit both "blue jay" (surface, 10) and "blue tit"
+   * (good, 60) and was paid 60. A word that ambiguous has not earned the deeper
+   * answer — if it matches equally well in two places, the shallower reading is
+   * the honest one. */
   for (const tier of MATCH_ORDER) {
     const score = bestInList(prompt[tier], guess);
-    if (score >= bestScore && score > 0) {
+    if (score > bestScore) {
       bestScore = score;
       bestTier = tier;
     }
   }
 
+  /* A verifier's NO must never override the curated lists. The lists are the
+   * ground truth for what is correct; a verifier is a rule for judging what is
+   * NOT listed. Getting this backwards made the -ology and phobia verifiers
+   * reject 32 of their own listed answers — "speleology" and "necrophobia" are
+   * real terms that simply are not in the lemma list. */
+  if (verdict === false && !bestTier) return { tier: 'none', ...TIERS.none };
+
   if (bestTier) return { tier: bestTier, ...TIERS[bestTier] };
 
-  /* Nothing matched. What that MEANS depends on the prompt.
+  /* Nothing matched exactly. Before giving up, forgive an UNAMBIGUOUS typo.
+   *
+   * Fuzzy matching against the whole bank is unsafe — it merges 54 pairs of
+   * answers that sit in different tiers ("mebibyte"/"tebibyte",
+   * "epsilon"/"upsilon"), and test-scoring.js keeps that list visible. But the
+   * danger is ambiguity, not fuzziness: if exactly ONE listed answer is within
+   * typo distance, there is nothing to confuse it with, and "cornia" for
+   * "cornea" is plainly the eye part rather than a different answer.
+   *
+   * So: collect every near match across all tiers, and accept only if they all
+   * point at the same answer. Two candidates means we cannot tell, and guessing
+   * would hand the player a tier they did not earn — so we decline. */
+  const near = [];
+  for (const tier of MATCH_ORDER) {
+    for (const entry of prompt[tier] ?? []) {
+      const e = normalise(entry);
+      if (isTypoOf(e, guess)) near.push({ tier, e });
+    }
+  }
+  if (near.length) {
+    const targets = new Set(near.map((n) => n.e));
+    if (targets.size === 1) {
+      const target = near[0].e;
+      /* Pay the shallowest tier it appears in, and never more than typing the
+       * word correctly would pay. Without that cap, "chaise loune" scored 85
+       * (matching the listed "chaise") while "chaise lounge" scored 60 — so a
+       * misspelling beat the correct spelling, which is the exploit this whole
+       * section exists to prevent. */
+      /* Pay the SHALLOWEST tier the target appears in. That is the cap: a
+       * misspelling can never pay more than the correct spelling, because the
+       * correct spelling reaches at least this same tier by exact match.
+       * (Computed directly rather than by re-entering scoreAnswer, which
+       * recursed without bound.) */
+      const tier = MATCH_ORDER.find((t) =>
+        (prompt[t] ?? []).some((e) => normalise(e) === target));
+      if (!tier) return { tier: 'none', ...TIERS.none };
+      return { tier, ...TIERS[tier], corrected: target };
+    }
+  }
+
+  /* Still nothing. What that MEANS depends on the prompt.
    *
    * On a CLOSED set the list is the category: 33 Norse gods is the roster, 50
    * state capitals is all of them. An answer outside it is not an obscure gem,

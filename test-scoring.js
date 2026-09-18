@@ -197,6 +197,177 @@ for (const [q, ans] of WRONG_CATEGORY) {
   }
 }
 
+/* ---------------------- 3c. how people actually type answers
+ *
+ * All reported from real play. Each one is a correct answer that scored NOTHING,
+ * which reads as the game being broken rather than the player being wrong. */
+
+/* Abbreviations ARE street suffixes — on signage the abbreviation is the normal
+ * form, and the prompt's example invites it. "rd" scoring 0 while "road" scored
+ * 10 was the game contradicting itself. */
+{
+  const p = byQ('Name a street suffix');
+  if (p) for (const w of ['rd', 'st', 'ave', 'blvd', 'dr', 'ln', 'hwy']) {
+    check(`street suffix abbreviation "${w}" scores`, scoreAnswer(p, w).pts > 0);
+  }
+}
+
+/* The distinctive word of a compound answer is the answer. Nobody says "Venn
+ * diagram" when the category is already charts. */
+{
+  const p = byQ('Name a type of graph or chart');
+  if (p) for (const w of ['gantt', 'venn', 'pie', 'bar', 'sankey', 'box']) {
+    check(`chart fragment "${w}" scores`, scoreAnswer(p, w).pts > 0);
+  }
+}
+
+/* ...but a bare modifier is still not an answer. */
+{
+  const p = byQ('Name a type of home or dwelling');
+  if (p) for (const w of ['long', 'farm', 'stilt']) {
+    eq(`bare modifier "${w}" scores 0`, scoreAnswer(p, w).pts, 0);
+  }
+}
+
+/* -ology and -phobia are open, so the suffix makes fabrication easy. Real terms
+ * must pay; coinages and non-sciences must not. */
+{
+  const p = byQ('Name a branch of science ending in -ology');
+  if (p) {
+    for (const w of ['speleology', 'vexillology', 'biology', 'malacology']) {
+      check(`real -ology "${w}" scores`, scoreAnswer(p, w).pts > 0);
+    }
+    for (const w of ['scientology', 'astrology', 'numerology', 'flurgology']) {
+      eq(`non-science -ology "${w}" scores 0`, scoreAnswer(p, w).pts, 0);
+    }
+  }
+}
+{
+  const p = byQ('Name a phobia');
+  if (p) {
+    for (const w of ['necrophobia', 'nomophobia', 'arachnophobia']) {
+      check(`real phobia "${w}" scores`, scoreAnswer(p, w).pts > 0);
+    }
+    for (const w of ['lassophobia', 'flurglephobia']) {
+      eq(`invented phobia "${w}" scores 0`, scoreAnswer(p, w).pts, 0);
+    }
+  }
+}
+
+/* A verifier's NO must never beat the curated lists. Getting this backwards
+ * made the two verifiers above reject 32 of their OWN listed answers. */
+for (const q of ['Name a branch of science ending in -ology', 'Name a phobia']) {
+  const p = byQ(q);
+  if (!p) continue;
+  for (const tier of TIER_NAMES) {
+    for (const entry of p[tier] ?? []) {
+      check(`listed "${entry}" survives its verifier`, scoreAnswer(p, entry).pts > 0);
+    }
+  }
+}
+
+/* ---------------- 3d. UNCHARTED must never beat a measured answer
+ *
+ * THE WORST BUG FOUND SO FAR. UNCHARTED paid 70, above CLAY (30) and SHALE
+ * (60), which made truncation a dominant strategy: "whis" scored 70 while
+ * "whiskey" scored 10, and "poly" beat "polyester" 70 to 60. Across the open
+ * bank there were 5,469 cases where an unlisted FRAGMENT of a listed answer
+ * outscored the answer itself. A player who noticed would stop naming things
+ * and type four-letter stubs.
+ *
+ * UNCHARTED is now 8, below TOPSOIL's 10. Naming the obvious thing always beats
+ * gesturing at something we cannot check. */
+check('UNCHARTED pays less than the shallowest measured tier',
+  scoreAnswer({ q: 'x', closed: false, gate: 'lenient', surface: ['zzz'] }, 'somethingelse').pts
+    < TIERS.surface.pts);
+
+{
+  let exploits = 0;
+  const worst = [];
+  for (const p of ALL) {
+    for (const tier of TIER_NAMES) {
+      for (const entry of p[tier] ?? []) {
+        const full = scoreAnswer(p, entry);
+        for (const len of [4, 5, 6]) {
+          if (entry.length <= len) continue;
+          const frag = entry.toLowerCase().slice(0, len);
+          if (!/^[a-z]+$/.test(frag)) continue;
+          const partial = scoreAnswer(p, frag);
+          // Only a problem when the fragment is UNVERIFIED — a fragment that is
+          // itself a listed answer ("screw" in a building-material list) is
+          // legitimately its own answer and may well be deeper.
+          if (partial.tier === 'unverified' && partial.pts > full.pts) {
+            exploits++;
+            if (worst.length < 8) worst.push(`"${frag}"=${partial.pts} > "${entry}"=${full.pts} (${p.q})`);
+          }
+        }
+      }
+    }
+  }
+  check('no unlisted fragment outscores the answer it truncates',
+    exploits === 0, `${exploits} exploits:\n    ${worst.join('\n    ')}`);
+}
+
+/* An ambiguous fragment takes the SHALLOWER reading. "blue" matches both "blue
+ * jay" (surface) and "blue tit" (good); paying the deeper one handed out 60
+ * points for a modifier. */
+{
+  const p = byQ('Name a bird');
+  if (p) {
+    const r = scoreAnswer(p, 'blue');
+    check('ambiguous fragment takes the shallower tier',
+      r.tier === 'surface' || r.pts === 0, `got ${r.tier} (${r.pts})`);
+  }
+}
+
+/* Unambiguous typos are forgiven; ambiguous ones are not. */
+{
+  const p = byQ('Name a part of the human eye');
+  if (p) {
+    const r = scoreAnswer(p, 'cornia');
+    check('unambiguous typo "cornia" reads as cornea', r.pts > 0, `got ${r.pts}`);
+  }
+  /* A typo may never pay MORE than spelling it correctly — EXCEPT where the
+   * misspelling legitimately lands on a different listed answer. "chaise" and
+   * "chaise lounge" are both listed for furniture, at deep (85) and good (60),
+   * so "chaise loune" correctly reaches "chaise". That is the data's shape, not
+   * a scoring bug, so a mangled entry whose prefix is itself listed is skipped. */
+  const listedIn = (p2, word) => TIER_NAMES.some((t) =>
+    (p2[t] ?? []).some((e) => normalise(e) === word));
+
+  for (const p2 of ALL) {
+    for (const tier of TIER_NAMES) {
+      for (const entry of (p2[tier] ?? []).slice(0, 3)) {
+        const e = normalise(entry);
+        if (e.length < 7) continue;
+        const typo = e.slice(0, -2) + e.slice(-1);   // drop one letter
+        // Skip when any leading word of the entry is its own listed answer.
+        const words = e.split(' ');
+        if (words.length > 1 && words.some((_, i) => listedIn(p2, words.slice(0, i + 1).join(' ')))) continue;
+        const rt = scoreAnswer(p2, typo), re = scoreAnswer(p2, entry);
+        if (rt.pts > re.pts) {
+          check(`typo of "${entry}" does not outscore it`, false, `${rt.pts} > ${re.pts}`);
+        }
+      }
+    }
+  }
+}
+
+/* ------------------------------------------ 3e. aliases score their canonical
+ *
+ * An alias must score EXACTLY what the answer it stands for scores — never zero
+ * (the bug it exists to fix: "czechia" is Czech Republic) and never more (which
+ * would make the alias a route to a deeper tier than the real answer). */
+for (const p of ALL) {
+  if (!p.aliases) continue;
+  for (const [alias, canonical] of Object.entries(p.aliases)) {
+    const ra = scoreAnswer(p, alias);
+    const rc = scoreAnswer(p, canonical);
+    eq(`alias "${alias}" scores as "${canonical}"`, ra.pts, rc.pts);
+    check(`alias "${alias}" scores above zero`, ra.pts > 0);
+  }
+}
+
 /* ------------------------------------------------- 4. closed-set strictness */
 
 /* On a closed set, a wrong answer is wrong however real the word is. "banana"

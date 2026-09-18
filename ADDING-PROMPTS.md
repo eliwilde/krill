@@ -60,6 +60,34 @@ With `hinted`, also set `hint` to a key from `SUFFIX_HINTS` in
 If you omit `gate` on an open prompt you get `wordlike` and a warning. That is
 a safe default, not an error.
 
+## Aliases
+
+When one answer has several accepted spellings, use an alias map. The alias
+resolves to its canonical form **before** tier matching, so it scores exactly
+what the real answer scores — never zero, never more.
+
+```js
+aliases: { "czechia": "czech republic", "drywall": "plasterboard" }
+```
+
+Use it for: abbreviations (`rd` → `road`), US/UK pairs (`eggplant` → `aubergine`
+— the norms bank is UK-sourced, so this comes up a lot), former names
+(`swaziland` → `eswatini`), and alternate forms (`holy see` → `vatican city`).
+
+Two rules, both learned by breaking them:
+
+1. **Never alias a word that is already a listed answer.** `pants` and `sweater`
+   are both listed for clothing; aliasing them overwrote their own correct tiers.
+   Enforced automatically — bad aliases are dropped and the tests report it.
+2. **Check the tier you resolve into.** `sneakers` → `trainers` is a true synonym
+   pair, but `trainers` sits at `deep`, so the alias would pay 85 for an everyday
+   word. Ask: *would a typical player have earned this tier by naming this?*
+
+Aliases for the generated `norms-prompts.js` go in the `ALIASES` table in
+[game.js](game.js), next to `REJECTS`, because that file is regenerated.
+
+`node prompt-schema.js` errors if an alias points at an answer that isn't listed.
+
 ## Rejects
 
 For open prompts, list the wrong-category answers players actually type. These

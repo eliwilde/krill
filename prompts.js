@@ -122,6 +122,16 @@ export const PROMPTS = [
     deep: ["adposition", "postposition", "classifier", "evidential", "converb", "ideophone", "circumposition"] },
 
   { q: "Name a landlocked country", cat: "geo", closed: true,
+    /* Alternate names resolve to the canonical answer and score exactly what it
+     * scores. Sourced from Wikidata skos:altLabel, filtered — see
+     * wikidata-pipeline.md for why the raw dump needs filtering (it includes
+     * ISO codes like "by" and "dk" that collide with real short answers). */
+    aliases: { "czechia": "czech republic", "fyrom": "north macedonia",
+               "macedonia": "north macedonia", "swaziland": "eswatini",
+               "swiss confederation": "switzerland", "helvetia": "switzerland",
+               "belorussia": "belarus", "white russia": "belarus",
+               "kirghizia": "kyrgyzstan", "holy see": "vatican city",
+               "vatican": "vatican city" },
     surface: ["switzerland", "austria", "mongolia", "nepal", "bolivia"],
     tooclever: ["afghanistan", "hungary", "paraguay", "kazakhstan", "czech republic"],
     common: ["laos", "zambia", "zimbabwe", "belarus", "serbia", "slovakia", "uganda"],
@@ -228,14 +238,14 @@ export const PROMPTS = [
     good: ["descaling the kettle", "cleaning the gutters", "defrosting the freezer", "scrubbing grout", "polishing silver", "shoveling snow", "changing air filters", "bleeding radiators"],
     deep: ["flipping the mattress", "cleaning the lint trap", "oiling hinges", "chimney sweeping", "resealing the tub", "cleaning the dryer vent", "beating rugs", "descaling the showerhead"] },
 
-  { q: "Name something you drink out of", cat: "culture", closed: false, gate: "lenient",
+  { q: "Name something you drink out of", cat: "culture", closed: true,
     surface: ["glass", "cup", "mug", "bottle", "can"],
     tooclever: ["straw", "flask", "thermos", "jug", "wine glass"],
     common: ["tumbler", "goblet", "pitcher", "canteen", "stein", "carafe", "chalice"],
     good: ["tankard", "snifter", "demitasse", "coupe", "gourd", "horn", "beaker", "bowl"],
     deep: ["quaich", "porron", "bota bag", "kylix", "rhyton", "yerba mate gourd", "wineskin", "noggin", "firkin"] },
 
-  { q: "Name a type of home or dwelling", cat: "culture", closed: false, gate: "wordlike",
+  { q: "Name a type of home or dwelling", cat: "culture", closed: true,
     surface: ["house", "apartment", "condo", "cabin", "cottage"],
     tooclever: ["mansion", "bungalow", "townhouse", "duplex", "trailer"],
     common: ["villa", "loft", "studio", "farmhouse", "penthouse", "hut", "ranch",
@@ -337,7 +347,8 @@ export const PROMPTS = [
 
   { q: "Name a country that no longer exists", cat: "geo", closed: true,
     surface: ["soviet union", "yugoslavia", "czechoslovakia", "east germany", "prussia"],
-    tooclever: ["ottoman empire", "roman empire", "rhodesia", "persia", "siam"],
+    tooclever: ["ottoman empire", "roman empire", "rhodesia", "persia", "siam",
+                "aztec empire", "aztec", "inca empire", "inca", "byzantine empire", "byzantium"],
     common: ["west germany", "burma", "zaire", "ceylon", "austria-hungary", "north yemen", "south vietnam"],
     good: ["tibet", "sikkim", "biafra", "tanganyika", "zanzibar", "abyssinia", "serbia and montenegro", "united arab republic"],
     deep: ["gran colombia", "republic of texas", "dahomey", "upper volta", "basutoland", "bechuanaland", "newfoundland", "hejaz", "transjordan", "ryukyu kingdom"] },
@@ -473,10 +484,18 @@ export const PROMPTS = [
     deep: ["zeppelin bend", "ashley's stopper", "farrimond friction hitch", "icicle hitch", "blake's hitch", "klemheist", "buntline hitch", "highwayman's hitch", "turk's head"] },
 
   { q: "Name a street suffix (like Street or Avenue)", cat: "culture", closed: true,
-    surface: ["street", "avenue", "road", "drive", "lane"],
-    tooclever: ["boulevard", "court", "place", "way", "circle"],
-    common: ["terrace", "parkway", "highway", "trail", "crescent", "plaza", "alley"],
-    good: ["esplanade", "mews", "close", "quay", "causeway", "row", "byway", "turnpike"],
+    /* Abbreviations are listed as aliases in the SAME tier as the word they
+     * stand for. On real signage and mail a street suffix usually IS the
+     * abbreviation, and the prompt's own example ("like Street or Avenue")
+     * invites them — "rd" scoring NOTHING while "road" scores TOPSOIL is the
+     * game contradicting itself. They are not separate answers, so they never
+     * sit in a deeper tier than their full form. */
+    surface: ["street", "st", "avenue", "ave", "road", "rd", "drive", "dr", "lane", "ln"],
+    tooclever: ["boulevard", "blvd", "court", "ct", "place", "pl", "way", "circle", "cir"],
+    common: ["terrace", "ter", "parkway", "pkwy", "highway", "hwy", "trail", "trl",
+             "crescent", "cres", "plaza", "plz", "alley",
+             "expressway", "express", "freeway", "route", "pike", "loop", "bend", "run"],
+    good: ["esplanade", "mews", "close", "quay", "causeway", "row", "byway", "turnpike", "tpke"],
     deep: ["wynd", "vennel", "ginnel", "twitten", "snicket", "chase", "garth", "rise", "spur", "dene"] },
 
   { q: "Name a geologic eon, era, period, or epoch", cat: "sci", closed: true,

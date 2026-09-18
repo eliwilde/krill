@@ -46,6 +46,52 @@
 
 export const TIER_NAMES = ['surface', 'tooclever', 'common', 'good', 'deep'];
 
+/* ----------------------------------------------------------------- aliases
+ *
+ * An `aliases` map lets one answer have several accepted spellings without
+ * creating several answers:
+ *
+ *   aliases: { "czechia": "czech republic", "fyrom": "north macedonia" }
+ *
+ * The alias resolves to its canonical form BEFORE tier matching, so it always
+ * scores exactly what the canonical answer scores — an alias can never be a
+ * route to a deeper tier than the real thing. That is the whole design
+ * constraint: "rd" must score what "road" scores, not more and not zero.
+ *
+ * Wikidata's `skos:altLabel` is a good source for these (see
+ * wikidata-pipeline.md), but it needs filtering: raw alt-labels include
+ * two-letter country codes ("by" for Belarus, "dk" for Denmark) and airline
+ * codes ("TAN"), which would collide with real short answers in other prompts.
+ * `isUsefulAlias` below is the filter.
+ */
+
+/** Resolve a guess through a prompt's alias map. Returns the guess unchanged if
+ *  there is no alias for it. */
+export function resolveAlias(prompt, guess) {
+  const map = prompt?.aliases;
+  if (!map) return guess;
+  const hit = map[guess];
+  return typeof hit === 'string' ? hit : guess;
+}
+
+/* Is a SCRAPED alias worth keeping? Rejects the junk that alt-label dumps
+ * carry: ISO and airline codes ("by", "dk", "HR", "HRV", "TAN") which are not
+ * names anyone types as an answer and which collide with real short answers in
+ * other prompts.
+ *
+ * This applies ONLY to aliases imported from an external source. Hand-written
+ * aliases are trusted as-is — "rd", "st" and "ave" are genuinely how street
+ * suffixes are written, and a blanket length rule would throw them out. */
+export function isUsefulAlias(alias, canonical) {
+  const a = normalise(alias, { trimPlural: false });
+  const c = normalise(canonical, { trimPlural: false });
+  if (!a || a === c) return false;
+  if (a.replace(/[^a-z]/g, '').length < 4) return false;
+  // "republic of x" adds nothing when "x" is already the answer.
+  if (a === `republic of ${c}` || a === `the ${c}`) return false;
+  return true;
+}
+
 /* ------------------------------------------------------------ normalisation
  *
  * One canonical normaliser, exported, so the game, the validator and any
@@ -468,6 +514,26 @@ export function validatePrompt(p) {
   }
 
   if (p.gate && !GATES[p.gate]) errors.push(ERRORS.badGate(p.gate));
+
+  /* An alias must point at an answer that is actually listed, or it silently
+   * resolves a guess to nothing and the player gets zero for a correct answer —
+   * the exact failure the alias map exists to prevent. */
+  if (p.aliases) {
+    const listed = new Set();
+    for (const t of TIER_NAMES) {
+      for (const e of p[t] ?? []) listed.add(normaliseEntry(e));
+    }
+    for (const [alias, canonical] of Object.entries(p.aliases)) {
+      const a = normaliseEntry(alias);
+      const c = normaliseEntry(canonical);
+      if (!listed.has(c)) {
+        errors.push(`alias "${alias}" -> "${canonical}", which is not a listed answer`);
+      }
+      if (listed.has(a)) {
+        warnings.push(`alias "${alias}" is itself a listed answer; the alias is redundant`);
+      }
+    }
+  }
 
   const present = TIER_NAMES.filter((t) => Array.isArray(p[t]));
   if (!present.length) errors.push(ERRORS.noTiers);
