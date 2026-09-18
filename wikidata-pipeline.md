@@ -130,7 +130,154 @@ For a prompt with no production-norm data, the honest fallback is editorial
 judgement audited against prevalence, which is what `prompts.js` and
 `npm run audit` already do.
 
-## 4. What IS worth taking from this
+## 3b. The revised sea-filter query: worse, and the reason matters
+
+The follow-up proposal replaced the landlocked tag with a geometric filter —
+exclude any country bordering a sea:
+
+```sparql
+FILTER NOT EXISTS {
+  ?country wdt:P47 ?waterBody .
+  ?waterBody wdt:P31/wdt:P279* wd:Q15324 .
+}
+```
+
+**Returns 51 countries**, including Iceland, Malta, Cyprus, Greece, Norway,
+Portugal and the United Kingdom. Worse than the 16 it replaced.
+
+`P47` is "shares border with", and it is used for **land** neighbours. Iceland's
+P47 is `Greenland, Faroe Islands, Svalbard` — all landmasses, no sea. So the
+`FILTER NOT EXISTS` finds no sea to exclude on and passes everything through.
+
+Substituting `P206` ("located next to body of water") does not fix it either:
+only **31 of 51** European sovereign states have `P206` populated at all, so the
+other 20 read as landlocked by default.
+
+**The general lesson, which applies to any Wikidata pipeline:** absence of a
+statement is not absence of the fact. `FILTER NOT EXISTS` over crowd-sourced
+data silently converts "nobody has recorded this yet" into "this is false". Any
+query built on a negation needs a populated-ness check first:
+
+```sparql
+# At minimum, require the property to exist before trusting its absence:
+?country wdt:P206 ?anyWater .     # only reason about countries that HAVE data
+```
+
+## 4. Tiering: PMI works. This is the good idea.
+
+The co-occurrence-ratio proposal is **correct**, measurably better than
+pageviews, and now implemented in [pmi-tier.js](pmi-tier.js).
+
+Measure the ratio, not the count:
+
+```
+P(constraint | entity) ~ hits("entity" AND constraint) / hits("entity")
+```
+
+The reasoning in the proposal holds up exactly as stated. Switzerland is written
+about for banking, chocolate, neutrality and skiing, so "landlocked" is a small
+fraction of its coverage. Liechtenstein has far fewer mentions but a much higher
+share of them call out being landlocked. Measured on Wikipedia's search index:
+
+| Country | joint/total | ratio |
+|---|---|---|
+| Austria | 469 / 216,695 | 0.00216 |
+| Switzerland | 508 / 224,561 | 0.00226 |
+| Czech Republic | 284 / 127,615 | 0.00223 |
+| Belarus | 260 / 67,076 | 0.00388 |
+| San Marino | 166 / 35,176 | 0.00472 |
+| Andorra | 174 / 29,086 | 0.00598 |
+| **Liechtenstein** | 214 / 32,380 | **0.00661** |
+| Vatican City | 83 / 10,638 | 0.00780 |
+
+Liechtenstein moves from **9th of 16 by pageviews to 15th of 16 by PMI** — i.e.
+from "middle of the pack" to "nearly the deepest", which is where the curated
+tiering wanted it. That is the proposal working.
+
+### Validated against ground truth: +0.63
+
+Not asserted — tested. 13 birds whose true tiers come from ~460 participants
+*actually naming birds* (the category-production norms behind
+`norms-prompts.js`), which is precisely what tiering is trying to predict:
+
+```
+Spearman correlation, PMI order vs measured recall order:  +0.63
+```
+
+Real signal, and clearly better than pageviews. But not a replacement for
+measured data, and the failure mode is systematic:
+
+| Word | PMI rank (of 13) | Measured tier |
+|---|---|---|
+| osprey | 2nd shallowest | **deep** |
+| ostrich | 12th (near deepest) | **common** |
+
+**PMI confuses "defined by the category" with "hard to think of".** Nearly
+everything written about an ostrich is about it being a bird, so its ratio is
+high — but everyone can name one. Prototypical members of a category get
+misplaced as deep. Expect to fix those by hand.
+
+(Osprey fails for a different, dumber reason: it is also a backpack brand and a
+military aircraft, which dilutes the denominator. Homonyms break this metric.)
+
+### Land area: same monotonicity break, plus a real flaw
+
+Tested too. Ranking by land area is non-monotonic against the proposed tiers,
+and it gets the head of the list wrong: **Belarus is the largest landlocked
+European country at 207,600 km² and is not the first one people name.** Physical
+footprint predicts map salience, not recall. Correlation with PMI is +0.76, so
+it is measuring something related, but where they disagree PMI is the better
+guide.
+
+### The `tooclever` tier cannot be computed, by any metric
+
+Worth stating plainly, because it explains every monotonicity failure in this
+document. In all three metrics tested — pageviews, PMI, land area — the **only**
+tier that broke monotonic ordering was Too Clever:
+
+```
+PMI:        Plankton 0.00221 -> Too Clever 0.00592 -> Schooler 0.00287  (break)
+Land area:  Plankton  62,582 -> Too Clever   1,293 -> Schooler 116,965  (break)
+```
+
+Remove Too Clever and PMI is perfectly monotonic across the other five tiers.
+
+That is not a defect in the metric. `tooclever` means *"the answer that feels
+like a clever dodge, which thousands of other players also thought was clever"*.
+It is a fact about how players reason under time pressure, not about how often
+two words co-occur. No corpus statistic can find it, and `pmi-tier.js`
+deliberately does not assign it.
+
+## 4b. Live percentile recalibration: right instinct, one trap
+
+"Switch to a running percentile rank once the first 1,000 real players submit"
+is the correct long-term answer — player submissions ARE category-production
+norms, gathered continuously and for free, which is strictly better data than
+any corpus proxy. Worth building.
+
+Two things to get right, though:
+
+**It is a feedback loop, not a measurement.** Players only submit answers the
+game rewards. Once `khao soi` is known to pay 85, it gets typed more, its
+percentile rises, and it is demoted — and the demotion makes it pay less, so it
+gets typed less again. Tiers oscillate, and a player's score depends on when they
+played. Mitigation: freeze a day's tiers at round start (the Wordle model — the
+puzzle is identical for everyone that day) and recalibrate on a slow cadence from
+a held-out sample, not from the live scoring stream.
+
+**Autocomplete has the same problem, worse.** Querying search suggestions for
+`european landlocked countries ...` reflects what people *search*, which is
+heavily shaped by what listicles and quiz sites already published — and if this
+game gets popular, by the game itself. It is also not a stable API, is
+geo-personalised, and is against Google's ToS to scrape. If you want a
+top-of-mind proxy, PMI is defensible and reproducible; autocomplete is neither.
+
+**The cheap version that works now:** log every submission with the prompt and
+the tier awarded. That is the seed corpus for real production norms, costs almost
+nothing, and needs no scoring changes. Revisit percentile tiering when a prompt
+has a few thousand real submissions.
+
+## 5. What IS worth taking from this
 
 **Aliases.** This is the strongest part of the proposal and it addresses a real
 bug class. `skos:altLabel` gives free, well-maintained alias sets:
