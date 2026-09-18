@@ -90,7 +90,7 @@ export const PROMPTS = [
     good: ["forseti", "vali", "hodr", "gefjon", "eir", "nanna", "aegir"],
     deep: ["kvasir", "hoenir", "lofn", "syn", "var", "fulla", "sjofn", "mimir", "gullveig"] },
 
-  { q: "Name a Shakespeare play", cat: "culture", closed: false, gate: "lenient",
+  { q: "Name a Shakespeare play", cat: "culture", closed: true,
     surface: ["romeo and juliet", "hamlet", "macbeth", "julius caesar", "othello"],
     tooclever: ["king lear", "a midsummer night's dream", "the tempest", "much ado about nothing"],
     common: ["twelfth night", "the merchant of venice", "as you like it", "richard iii", "henry v", "the taming of the shrew"],
@@ -159,14 +159,14 @@ export const PROMPTS = [
 
   /* ---------------------------------------------------- language, sideways */
 
-  { q: "Name another English word for a nose (any creature's counts)", cat: "words", closed: false, gate: "wordlike",
+  { q: "Name another English word for a nose (any creature's counts)", cat: "words", closed: true,
     surface: ["snout", "beak", "muzzle", "schnoz", "honker"],
     tooclever: ["bill", "trunk", "proboscis", "conk", "snoot"],
     common: ["nostril", "nares", "hooter", "sniffer", "beezer", "neb"],
     good: ["rostrum", "snitch", "boko", "bugle", "smeller", "rhinarium", "septum"],
     deep: ["nasus", "olfactory organ", "probe", "snotbox", "nozzle", "beak-nose", "naris", "pecker"] },
 
-  { q: "Name a word for a baby animal", cat: "words", closed: false, gate: "wordlike",
+  { q: "Name a word for a baby animal", cat: "words", closed: true,
     surface: ["puppy", "kitten", "cub", "calf", "chick"],
     tooclever: ["foal", "lamb", "piglet", "duckling", "fawn"],
     common: ["kid", "joey", "colt", "filly", "gosling", "cygnet", "owlet"],
@@ -187,7 +187,7 @@ export const PROMPTS = [
     good: ["rotor", "tenet", "solos", "stats", "redder", "repaper", "rotator"],
     deep: ["deified", "reviver", "rotavator", "detartrated", "malayalam", "semes", "sagas", "minim"] },
 
-  { q: "Name a word for a huge number (million or bigger)", cat: "words", closed: false, gate: "wordlike",
+  { q: "Name a word for a huge number (million or bigger)", cat: "words", closed: true,
     surface: ["million", "billion", "trillion", "zillion", "gazillion"],
     tooclever: ["quadrillion", "quintillion", "googol", "bazillion", "infinity"],
     common: ["sextillion", "septillion", "octillion", "nonillion", "decillion", "myriad"],
@@ -196,7 +196,7 @@ export const PROMPTS = [
 
   /* --------------------------------------------------- everyday, sideways */
 
-  { q: "Name a type of building used for prayer", cat: "culture", closed: false, gate: "wordlike",
+  { q: "Name a type of building used for prayer", cat: "culture", closed: true,
     surface: ["church", "mosque", "temple", "synagogue", "cathedral"],
     tooclever: ["chapel", "shrine", "monastery", "basilica", "abbey"],
     common: ["gurdwara", "pagoda", "sanctuary", "minster", "convent", "oratory", "meetinghouse"],
@@ -210,10 +210,21 @@ export const PROMPTS = [
     good: ["pediatric nurse", "speech therapist", "child life specialist", "neonatologist", "social worker", "truant officer", "guidance counselor", "doula"],
     deep: ["face painter", "puppeteer", "toy tester", "children's librarian", "orthodontist", "pediatric dentist", "milk monitor", "birthing coach", "play therapist"] },
 
-  { q: "Name a household chore", cat: "culture", closed: false, gate: "lenient",
-    surface: ["dishes", "laundry", "vacuuming", "dusting", "mopping"],
-    tooclever: ["taking out the trash", "making the bed", "sweeping", "ironing", "mowing the lawn"],
-    common: ["folding clothes", "cleaning the bathroom", "raking leaves", "watering plants", "grocery shopping", "changing sheets", "washing windows"],
+  { q: "Name a household chore", cat: "culture", closed: true,
+    /* Closed, so the phrasings players actually type must be listed — "washing
+     * dishes", "doing the dishes" and "dishes" are one chore, and a player who
+     * types any of them has answered correctly. */
+    surface: ["dishes", "washing dishes", "doing the dishes", "washing up",
+              "laundry", "doing laundry", "washing clothes",
+              "vacuuming", "vacuum", "hoovering", "dusting", "mopping", "mopping the floor"],
+    tooclever: ["taking out the trash", "taking out the bins", "trash", "rubbish",
+                "making the bed", "sweeping", "ironing", "mowing the lawn", "mowing",
+                "cooking", "cleaning", "tidying up", "washing the car"],
+    common: ["folding clothes", "folding laundry", "cleaning the bathroom",
+             "scrubbing the toilet", "cleaning the toilet", "raking leaves",
+             "watering plants", "grocery shopping", "changing sheets",
+             "changing the bed", "washing windows", "cleaning windows",
+             "loading the dishwasher", "emptying the dishwasher", "weeding"],
     good: ["descaling the kettle", "cleaning the gutters", "defrosting the freezer", "scrubbing grout", "polishing silver", "shoveling snow", "changing air filters", "bleeding radiators"],
     deep: ["flipping the mattress", "cleaning the lint trap", "oiling hinges", "chimney sweeping", "resealing the tub", "cleaning the dryer vent", "beating rugs", "descaling the showerhead"] },
 
@@ -227,11 +238,14 @@ export const PROMPTS = [
   { q: "Name a type of home or dwelling", cat: "culture", closed: false, gate: "wordlike",
     surface: ["house", "apartment", "condo", "cabin", "cottage"],
     tooclever: ["mansion", "bungalow", "townhouse", "duplex", "trailer"],
-    common: ["villa", "loft", "studio", "farmhouse", "penthouse", "hut", "ranch"],
-    good: ["chalet", "yurt", "igloo", "houseboat", "brownstone", "tenement", "manor", "lodge"],
-    deep: ["longhouse", "wigwam", "dugout", "pueblo", "riad", "hogan", "stilt house", "troglodyte dwelling", "barndominium"] },
+    common: ["villa", "loft", "studio", "farmhouse", "penthouse", "hut", "ranch",
+             "teepee", "tepee", "tipi", "castle", "flat", "dorm", "motorhome"],
+    good: ["chalet", "yurt", "igloo", "houseboat", "brownstone", "tenement", "manor", "lodge",
+           "barracks", "bunker", "caravan", "shack", "lean-to", "treehouse"],
+    deep: ["longhouse", "wigwam", "dugout", "pueblo", "riad", "hogan", "stilt house", "troglodyte dwelling", "barndominium",
+           "kraal", "trullo", "palafito", "rondavel", "minka", "dacha", "isba", "earthship", "quonset hut"] },
 
-  { q: "Name a tool you would find in a toolbox", cat: "culture", closed: false, gate: "wordlike",
+  { q: "Name a tool you would find in a toolbox", cat: "culture", closed: true,
     surface: ["hammer", "screwdriver", "wrench", "pliers", "tape measure"],
     tooclever: ["saw", "level", "drill", "chisel", "utility knife"],
     common: ["allen key", "socket wrench", "clamp", "file", "mallet", "crowbar", "hacksaw"],
@@ -240,35 +254,35 @@ export const PROMPTS = [
 
   /* ------------------------------------------------------ nature, sideways */
 
-  { q: "Name an animal that produces its own light", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name an animal that produces its own light", cat: "sci", closed: true,
     surface: ["firefly", "anglerfish", "jellyfish", "glowworm", "lightning bug"],
     tooclever: ["squid", "plankton", "lanternfish", "krill", "sea pen"],
     common: ["dinoflagellate", "comb jelly", "viperfish", "dragonfish", "hatchetfish", "brittle star", "railroad worm"],
     good: ["vampire squid", "cookiecutter shark", "flashlight fish", "click beetle", "ostracod", "siphonophore", "pyrosome", "bobtail squid"],
     deep: ["atolla jellyfish", "tomopteris", "fire millipede", "quantula striata", "bermuda fireworm", "lanternshark", "sea sapphire", "green bomber worm"] },
 
-  { q: "Name a mammal that lives underground", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name a mammal that lives underground", cat: "sci", closed: true,
     surface: ["mole", "gopher", "badger", "rabbit", "groundhog"],
     tooclever: ["prairie dog", "meerkat", "chipmunk", "marmot", "vole"],
     common: ["ferret", "armadillo", "wombat", "aardvark", "hedgehog", "shrew", "pocket gopher"],
     good: ["naked mole rat", "pangolin", "jerboa", "bandicoot", "echidna", "solenodon", "tuco-tuco", "zokor"],
     deep: ["blind mole rat", "golden mole", "marsupial mole", "bilby", "springhare", "mole-vole", "bamboo rat", "desman", "cape dune mole rat"] },
 
-  { q: "Name an animal that hibernates", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name an animal that hibernates", cat: "sci", closed: true,
     surface: ["bear", "groundhog", "bat", "hedgehog", "squirrel"],
     tooclever: ["chipmunk", "snake", "frog", "turtle", "marmot"],
     common: ["dormouse", "skunk", "badger", "snail", "bumblebee queen", "lemur", "prairie dog"],
     good: ["fat-tailed dwarf lemur", "common poorwill", "wood frog", "box turtle", "jumping mouse", "ground squirrel", "hamster", "echidna"],
     deep: ["alpine marmot", "arctic ground squirrel", "little brown myotis", "pygmy possum", "tenrec", "mouse lemur", "garden dormouse", "edible dormouse"] },
 
-  { q: "Name an animal known for camouflage", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name an animal known for camouflage", cat: "sci", closed: true,
     surface: ["chameleon", "octopus", "stick insect", "polar bear", "leopard"],
     tooclever: ["cuttlefish", "arctic fox", "walking stick", "owl", "flounder"],
     common: ["seahorse", "praying mantis", "moth", "gecko", "snowshoe hare", "stonefish", "katydid"],
     good: ["leafy sea dragon", "ptarmigan", "mimic octopus", "orchid mantis", "decorator crab", "potoo", "tawny frogmouth", "pygmy seahorse"],
     deep: ["satanic leaf-tailed gecko", "dead leaf butterfly", "wrap-around spider", "trumpetfish", "bark mantis", "moss mimic stick insect", "flower crab spider", "glasswing butterfly"] },
 
-  { q: "Name a creature you might find in a tide pool", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name a creature you might find in a tide pool", cat: "sci", closed: true,
     surface: ["starfish", "crab", "sea anemone", "mussel", "snail"],
     tooclever: ["hermit crab", "barnacle", "sea urchin", "limpet", "shrimp"],
     common: ["sea cucumber", "chiton", "periwinkle", "blenny", "sculpin", "isopod", "brittle star"],
@@ -314,14 +328,14 @@ export const PROMPTS = [
     deep: ["eire"],
     reject: ["chile", "india", "china", "italy", "spain", "japan", "kenya", "egypt"] },
 
-  { q: "Name a strait (a narrow sea passage between two landmasses)", cat: "geo", closed: false, gate: "lenient",
+  { q: "Name a strait (a narrow sea passage between two landmasses)", cat: "geo", closed: true,
     surface: ["gibraltar", "bering strait", "bosphorus", "strait of hormuz", "english channel"],
     tooclever: ["strait of malacca", "dover", "magellan", "dardanelles", "taiwan strait"],
     common: ["cook strait", "torres strait", "davis strait", "denmark strait", "bass strait", "sunda strait", "korea strait"],
     good: ["kerch strait", "skagerrak", "kattegat", "bab-el-mandeb", "drake passage", "palk strait", "makassar strait", "luzon strait"],
     deep: ["fram strait", "nares strait", "lombok strait", "mozambique channel", "kara strait", "vilkitsky strait", "matochkin strait", "juan de fuca", "otranto"] },
 
-  { q: "Name a country that no longer exists", cat: "geo", closed: false, gate: "lenient",
+  { q: "Name a country that no longer exists", cat: "geo", closed: true,
     surface: ["soviet union", "yugoslavia", "czechoslovakia", "east germany", "prussia"],
     tooclever: ["ottoman empire", "roman empire", "rhodesia", "persia", "siam"],
     common: ["west germany", "burma", "zaire", "ceylon", "austria-hungary", "north yemen", "south vietnam"],
@@ -348,28 +362,28 @@ export const PROMPTS = [
     good: ["nitrogen dioxide", "radon", "chlorofluorocarbon", "sulfur hexafluoride", "formaldehyde", "iodine vapor", "hydrogen peroxide"],
     deep: ["carbonyl sulfide", "dimethyl sulfide", "isoprene", "peroxyacetyl nitrate", "nitric oxide", "molecular chlorine", "hydroxyl radical", "tropospheric ozone"] },
 
-  { q: "Name a part of the human brain", cat: "health", closed: false, gate: "wordlike",
+  { q: "Name a part of the human brain", cat: "health", closed: true,
     surface: ["cerebrum", "cerebellum", "brain stem", "frontal lobe", "cortex"],
     tooclever: ["hippocampus", "amygdala", "thalamus", "hypothalamus", "pituitary"],
     common: ["medulla", "pons", "corpus callosum", "occipital lobe", "parietal lobe", "temporal lobe", "midbrain"],
     good: ["basal ganglia", "pineal gland", "substantia nigra", "putamen", "caudate nucleus", "insula", "fornix", "cingulate gyrus"],
     deep: ["locus coeruleus", "arcuate nucleus", "claustrum", "habenula", "area postrema", "nucleus accumbens", "subthalamic nucleus", "dentate gyrus", "globus pallidus"] },
 
-  { q: "Name a part of the human eye", cat: "health", closed: false, gate: "wordlike",
+  { q: "Name a part of the human eye", cat: "health", closed: true,
     surface: ["pupil", "iris", "retina", "cornea", "lens"],
     tooclever: ["eyelid", "eyelash", "optic nerve", "sclera", "eyebrow"],
     common: ["conjunctiva", "vitreous humor", "aqueous humor", "macula", "fovea", "choroid", "tear duct"],
     good: ["ciliary body", "zonule", "limbus", "canthus", "lacrimal gland", "trabecular meshwork", "optic disc", "caruncle"],
     deep: ["bruch's membrane", "descemet's membrane", "bowman's layer", "schlemm's canal", "ora serrata", "tapetum", "pigment epithelium", "meibomian gland"] },
 
-  { q: "Name a human hormone", cat: "health", closed: false, gate: "wordlike",
+  { q: "Name a human hormone", cat: "health", closed: true,
     surface: ["insulin", "testosterone", "estrogen", "adrenaline", "cortisol"],
     tooclever: ["melatonin", "dopamine", "serotonin", "oxytocin", "thyroxine"],
     common: ["progesterone", "glucagon", "growth hormone", "prolactin", "ghrelin", "leptin", "endorphin"],
     good: ["vasopressin", "aldosterone", "calcitonin", "parathyroid hormone", "somatostatin", "gastrin", "secretin", "erythropoietin"],
     deep: ["cholecystokinin", "relaxin", "inhibin", "motilin", "orexin", "irisin", "amylin", "adiponectin", "thymosin"] },
 
-  { q: "Name a subatomic particle", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name a subatomic particle", cat: "sci", closed: true,
     surface: ["electron", "proton", "neutron", "photon", "quark"],
     tooclever: ["neutrino", "positron", "boson", "muon", "higgs boson"],
     common: ["gluon", "lepton", "tau", "pion", "hadron", "meson", "fermion"],
@@ -385,14 +399,14 @@ export const PROMPTS = [
 
   /* -------------------------------------------------- culture with a hook */
 
-  { q: "Name a Pixar protagonist (co-leads count)", cat: "culture", closed: false, gate: "lenient",
+  { q: "Name a Pixar protagonist (co-leads count)", cat: "culture", closed: true,
     surface: ["woody", "buzz lightyear", "nemo", "lightning mcqueen", "wall-e"],
     tooclever: ["marlin", "dory", "mike wazowski", "sulley", "remy"],
     common: ["mr incredible", "merida", "joy", "riley", "miguel", "carl fredricksen", "russell"],
     good: ["flik", "eve", "linguini", "arlo", "coco", "luca", "mei lee", "ember lumen"],
     deep: ["dug", "hector", "wade ripple", "alberto", "barley lightfoot", "ian lightfoot", "anxiety", "greg the raccoon", "bing bong"] },
 
-  { q: "Name a literary device", cat: "words", closed: false, gate: "wordlike",
+  { q: "Name a literary device", cat: "words", closed: true,
     surface: ["metaphor", "simile", "alliteration", "personification", "hyperbole"],
     tooclever: ["irony", "foreshadowing", "onomatopoeia", "symbolism", "oxymoron"],
     common: ["allegory", "imagery", "juxtaposition", "allusion", "paradox", "euphemism", "motif"],
@@ -406,14 +420,14 @@ export const PROMPTS = [
     good: ["tu quoque", "genetic fallacy", "equivocation", "composition fallacy", "division fallacy", "gambler's fallacy", "texas sharpshooter", "special pleading"],
     deep: ["affirming the consequent", "denying the antecedent", "masked man fallacy", "fallacy of the beard", "argumentum ad populum", "nirvana fallacy", "kettle logic", "quoting out of context", "ecological fallacy"] },
 
-  { q: "Name a type of graph or chart", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name a type of graph or chart", cat: "sci", closed: true,
     surface: ["bar chart", "pie chart", "line graph", "scatter plot", "histogram"],
     tooclever: ["venn diagram", "flowchart", "bubble chart", "area chart", "pictograph"],
     common: ["box plot", "heat map", "gantt chart", "radar chart", "tree map", "waterfall chart", "donut chart"],
     good: ["sankey diagram", "violin plot", "candlestick chart", "funnel chart", "chord diagram", "sunburst chart", "parallel coordinates", "dendrogram"],
     deep: ["marimekko chart", "bullet graph", "ternary plot", "hexbin plot", "ridgeline plot", "beeswarm plot", "alluvial diagram", "voronoi diagram", "q-q plot"] },
 
-  { q: "Name a math symbol", cat: "sci", closed: false, gate: "lenient",
+  { q: "Name a math symbol", cat: "sci", closed: true,
     surface: ["plus", "minus", "equals", "divide", "multiply"],
     tooclever: ["pi", "infinity", "square root", "percent", "greater than"],
     common: ["sigma", "delta", "theta", "integral", "factorial", "not equal", "less than"],
@@ -430,7 +444,7 @@ export const PROMPTS = [
     good: ["femto", "atto", "zetta", "yotta"],
     deep: ["zepto", "yocto", "ronna", "quetta", "ronto", "quecto"] },
 
-  { q: "Name a type of energy", cat: "sci", closed: false, gate: "wordlike",
+  { q: "Name a type of energy", cat: "sci", closed: true,
     surface: ["solar", "kinetic", "potential", "thermal", "nuclear"],
     tooclever: ["wind", "chemical", "electrical", "mechanical", "hydroelectric"],
     common: ["geothermal", "sound", "light", "elastic", "magnetic", "tidal", "biomass"],
@@ -458,7 +472,7 @@ export const PROMPTS = [
     good: ["alpine butterfly", "münter hitch", "trucker's hitch", "constrictor knot", "rolling hitch", "double fisherman's", "carrick bend", "monkey's fist"],
     deep: ["zeppelin bend", "ashley's stopper", "farrimond friction hitch", "icicle hitch", "blake's hitch", "klemheist", "buntline hitch", "highwayman's hitch", "turk's head"] },
 
-  { q: "Name a street suffix (like Street or Avenue)", cat: "culture", closed: false, gate: "wordlike",
+  { q: "Name a street suffix (like Street or Avenue)", cat: "culture", closed: true,
     surface: ["street", "avenue", "road", "drive", "lane"],
     tooclever: ["boulevard", "court", "place", "way", "circle"],
     common: ["terrace", "parkway", "highway", "trail", "crescent", "plaza", "alley"],
@@ -472,14 +486,14 @@ export const PROMPTS = [
     good: ["pliocene", "eocene", "oligocene", "paleocene", "archean", "proterozoic", "hadean", "neogene"],
     deep: ["ediacaran", "tonian", "cryogenian", "stenian", "ectasian", "calymmian", "statherian", "orosirian", "rhyacian", "siderian", "meghalayan"] },
 
-  { q: "Name a type of paper", cat: "culture", closed: false, gate: "wordlike",
+  { q: "Name a type of paper", cat: "culture", closed: true,
     surface: ["printer paper", "construction paper", "tissue paper", "wrapping paper", "cardboard"],
     tooclever: ["parchment", "newsprint", "sandpaper", "wax paper", "graph paper"],
     common: ["cardstock", "vellum", "tracing paper", "crepe paper", "blotting paper", "carbon paper", "rice paper"],
     good: ["onionskin", "manila", "kraft paper", "bristol board", "papyrus", "glassine", "washi", "bond paper"],
     deep: ["tyvek", "japanese kozo", "laid paper", "wove paper", "cotton rag", "banana paper", "khadi paper", "abaca", "amate"] },
 
-  { q: "Name a piece of armor", cat: "hist", closed: false, gate: "wordlike",
+  { q: "Name a piece of armor", cat: "hist", closed: true,
     surface: ["helmet", "shield", "breastplate", "chainmail", "gauntlet"],
     tooclever: ["visor", "greaves", "plate armor", "helm", "bracer"],
     common: ["cuirass", "pauldron", "vambrace", "gorget", "hauberk", "coif", "sabaton"],

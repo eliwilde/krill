@@ -17,9 +17,10 @@
  * a missing gate fails here instead of in front of a player.
  */
 
+import { readFileSync } from 'node:fs';
 import { PROMPTS } from './prompts.js';
 import { NORMS_PROMPTS } from './norms-prompts.js';
-import { scoreAnswer, TIERS } from './game.js';
+import { scoreAnswer, TIERS, ALL_PROMPTS } from './game.js';
 import {
   validateBank, loadLexicon, normalise, isTypoOf,
   passesGate, inLexicon, TIER_NAMES,
@@ -40,7 +41,10 @@ function eq(name, got, want) {
   check(name, got === want, `got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`);
 }
 
-const ALL = [...PROMPTS, ...NORMS_PROMPTS];
+/* The MERGED bank — what the scorer really sees, with reject lists attached.
+ * Using the raw prompts.js export here was a bug in this file: it tested
+ * prompts without their REJECTS, so a reject that never fired looked fine. */
+const ALL = ALL_PROMPTS;
 const byQ = (frag) => ALL.find((p) => p.q.toLowerCase().includes(frag.toLowerCase()));
 
 /* ----------------------------------------------------- 1. bank validation */
@@ -138,6 +142,59 @@ for (const [q, ans] of SUBJECT_LISTED) {
 {
   const p = byQ('Name a type of knot');
   if (p) eq('unlisted subject word is rejected', scoreAnswer(p, 'knot').pts, 0);
+}
+
+/* ------------------------------- 3b. wrong-category answers must not pay
+ *
+ * The bug that motivated this section: the lexicon gate asks "is this a real
+ * word", which is NOT the same as "is this a real answer". "pizza" is a real
+ * word, so on an open prompt it scored 70 — more than reaching a genuine
+ * good-tier answer. The defence is the `closed` flag, so these assert that the
+ * prompts where players actually hit this are closed or reject-listed. */
+const WRONG_CATEGORY = [
+  ['Name a literary device', 'rubric'],
+  ['Name a literary device', 'pizza'],
+  ['Name a strait', 'river'],
+  ['Name a strait', 'mountain'],
+  ['Name a household chore', 'wisk'],
+  ['Name a household chore', 'trombone'],
+  ['Name a subatomic particle', 'bicycle'],
+  ['Name a part of the human eye', 'elbow'],
+  ['Name a type of paper', 'elephant'],
+  ["Name a palindrome that's a real English dictionary word", 'river'],
+];
+for (const [q, ans] of WRONG_CATEGORY) {
+  const p = byQ(q);
+  if (!p) { check(`prompt exists: "${q}"`, false); continue; }
+  eq(`"${ans}" scores 0 on "${p.q.slice(0, 40)}"`, scoreAnswer(p, ans).pts, 0);
+}
+
+/* The palindrome prompt is mechanically decidable, so it should credit an
+ * unlisted real palindrome and reject a non-palindrome outright. */
+{
+  const p = byQ("Name a palindrome that's a real");
+  if (p) {
+    for (const w of ['rotator', 'redder', 'racecar', 'kayak']) {
+      check(`palindrome "${w}" is credited`, scoreAnswer(p, w).pts > 0);
+    }
+    for (const w of ['river', 'banana', 'almost']) {
+      eq(`non-palindrome "${w}" scores 0`, scoreAnswer(p, w).pts, 0);
+    }
+  }
+}
+
+/* Every REJECTS and VERIFIERS key must match a real prompt. A typo in either
+ * table silently disables it — which happened while writing this, so it is
+ * pinned. Both live in game.js keyed by exact prompt text. */
+{
+  const src = readFileSync(new URL('./game.js', import.meta.url), 'utf8');
+  const qs = new Set(ALL.map((p) => p.q));
+  // Keys are the quoted strings at the start of a line inside either table.
+  for (const m of src.matchAll(/^\s{2}(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)"):\s*(?:\[|\()/gm)) {
+    const key = (m[1] ?? m[2]).replace(/\\'/g, "'").replace(/\\"/g, '"');
+    if (!key.startsWith('Name ')) continue;
+    check(`table key matches a real prompt: "${key.slice(0, 48)}"`, qs.has(key));
+  }
 }
 
 /* ------------------------------------------------- 4. closed-set strictness */

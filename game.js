@@ -1,6 +1,6 @@
 import { PROMPTS as HAND } from './prompts.js';
 import { NORMS_PROMPTS } from './norms-prompts.js';
-import { passesGate, loadLexicon } from './prompt-schema.js';
+import { passesGate, loadLexicon, inLexicon } from './prompt-schema.js';
 
 /* The bank is two halves. prompts.js is hand-written: my judgement of what
  * people commonly answer. norms-prompts.js is generated from measured human
@@ -21,6 +21,15 @@ const REJECTS = {
   'Name a branch of science': ['data', 'research', 'experiment', 'lab', 'scientist', 'theory'],
   'Name a part of speech': ['word', 'sentence', 'letter', 'grammar', 'language', 'articulation'],
   'Name a weapon': ['fist', 'hand', 'foot', 'war', 'army', 'soldier', 'violence', 'water', 'fire', 'air', 'earth'],
+
+  /* A chore is an ACTIVITY. Players reliably answer with the tool instead —
+   * "wisk", "mop", "broom" — which is the wrong part of speech for the
+   * category, not an obscure chore. */
+  'Name a household chore': ['whisk', 'wisk', 'mop', 'broom', 'vacuum', 'sponge',
+    'bucket', 'soap', 'detergent', 'bleach', 'duster', 'rag', 'towel', 'iron',
+    'hoover', 'cloth', 'brush', 'kitchen', 'bathroom', 'house', 'clean', 'tidy'],
+
+  "Name a palindrome that's a real English dictionary word": ['palindrome'],
 };
 
 /* Openness defaults, applied at merge time.
@@ -183,6 +192,61 @@ function shuffled(arr) {
   return out;
 }
 
+/* ------------------------------------------------------ mechanical verifiers
+ *
+ * Some categories are DECIDABLE: you can check membership with a rule instead
+ * of a list. Where that is true it beats every heuristic in prompt-schema.js,
+ * because it is not a guess at all — a palindrome either reads the same
+ * backwards or it does not.
+ *
+ * A verifier returns true (definitely a member), false (definitely not), or
+ * null (cannot tell — fall through to the normal gate). Keyed by prompt text,
+ * like REJECTS, so the prompt files stay pure data.
+ */
+/* CAREFUL: verifiers receive the RAW input, lightly cleaned, NOT the scorer's
+ * normalised form. normalise() trims a trailing "s" (so "ramens" reaches
+ * "ramen"), which silently breaks any rule that depends on exact spelling:
+ * "sees" became "see" and stopped being a palindrome, "laos" became "lao" and
+ * stopped having four letters. Both were real listed answers scoring zero. */
+const VERIFIERS = {
+  "Name a palindrome that's a real English dictionary word": (raw) => {
+    const w = raw.replace(/[^a-z0-9]/g, '');
+    if (w.length < 3) return false;              // "a", "ab" are not answers
+    if (w !== [...w].reverse().join('')) return false;   // not a palindrome
+    // It IS a palindrome. Only credit it if it is also a real word, which is
+    // the other half of what the prompt asks for.
+    return inLexicon(w) ? true : null;
+  },
+
+  'Name a country with a four-letter English name': (raw) => {
+    // Decidable on length alone for the reject direction.
+    return raw.replace(/[^a-z]/g, '').length === 4 ? null : false;
+  },
+
+  "Name a phobia (its formal name, like 'arachnophobia')": (raw) => {
+    return /phobia$/.test(raw) ? null : false;
+  },
+
+  'Name a branch of science ending in -ology': (raw) => {
+    return /ology$/.test(raw) ? null : false;
+  },
+};
+
+/* Cleaned but NOT plural-trimmed — see the note above VERIFIERS. */
+function cleanForVerify(raw) {
+  return String(raw ?? '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim()
+    .replace(/^(a|an|the)\s+/, '')
+    .replace(/[^a-z0-9\s'-]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
+function verify(prompt, raw) {
+  const fn = VERIFIERS[prompt.q];
+  return fn ? fn(cleanForVerify(raw)) : null;
+}
+
 /* --------------------------------------------------------------- scoring */
 
 export function scoreAnswer(prompt, raw) {
@@ -192,6 +256,12 @@ export function scoreAnswer(prompt, raw) {
   // Checked before matching: the prompt's own subject word must not sneak in
   // as a fragment of a listed entry ("cheese" inside "blue cheese").
   if (isObviouslyWrong(prompt, guess)) return { tier: 'none', ...TIERS.none };
+
+  /* A mechanical verifier outranks everything below, including the lists: if
+   * the category is decidable, a definite NO is definite. "river" is not a
+   * palindrome and no amount of list-matching should make it one. */
+  const verdict = verify(prompt, raw);
+  if (verdict === false) return { tier: 'none', ...TIERS.none };
 
   // Best match wins, not first match. On a tie the deeper tier takes it —
   // if an answer genuinely sits in two lists, the player gets the benefit.
@@ -218,15 +288,27 @@ export function scoreAnswer(prompt, raw) {
    * reality, so an unlisted answer is usually a real one we never wrote down.
    * Those still pay, at UNCHARTED — real credit, but capped below a listed
    * FOSSIL BED, because an answer we cannot verify must never outscore one we
-   * measured. We still run NO dictionary check: that would punish genuine
-   * obscure answers, which is the opposite of the point. */
+   * measured. */
+
+  /* A verifier that says YES is proof, so it pays even on a closed set: an
+   * unlisted real palindrome is a correct answer we simply did not write down. */
+  if (verdict === true) return { tier: 'unverified', ...UNVERIFIED };
+
   if (isClosedSet(prompt)) return { tier: 'none', ...TIERS.none };
 
-  /* Open set, unlisted answer. Until now this paid UNCHARTED unconditionally,
-   * which meant "gorbleflax" and "hoatzin" both scored 70 — typing mash was a
-   * reliable 70% of maximum. The gate separates the two: a word the lexicon
-   * knows, or one shaped like a real English word, is credited; a keyboard
-   * mash is not. See prompt-schema.js for why the lexicon only ever promotes. */
+  /* Open set, unlisted answer.
+   *
+   * This paid UNCHARTED unconditionally, so "gorbleflax" and "hoatzin" both
+   * scored 70 and mashing was a reliable 70% of maximum. The gate now requires
+   * the guess to be a real word.
+   *
+   * That is necessary but NOT sufficient, and the limit is worth stating: the
+   * gate cannot tell whether a real word belongs to the category. "pizza" is a
+   * real word, so on an open prompt it still pays. The defence against that is
+   * not the gate but the `closed` flag — which is why only 13 of 61 hand-written
+   * prompts are open, down from 37. A category we cannot verify membership for
+   * should be CLOSED, so that an unlisted answer scores nothing rather than 70.
+   * REJECTS covers the predictable wrong-category answers on what remains. */
   if (!passesGate(prompt, guess)) return { tier: 'none', ...TIERS.none };
   return { tier: 'unverified', ...UNVERIFIED };
 }
@@ -484,3 +566,11 @@ export const STRATA = [
 ];
 
 export const CONFIG = { ROUND_LENGTH, SECONDS, BEDROCK, MAX_SCORE };
+
+/* The MERGED bank, as the scorer actually sees it: norms and hand-written
+ * prompts combined, with `closed`/`gate` defaults applied and REJECTS attached.
+ *
+ * Exported for the tests, which previously imported prompts.js directly and so
+ * tested prompts WITHOUT their reject lists — the merge happens here, and a
+ * test that skips it is not testing the real thing. */
+export const ALL_PROMPTS = PROMPTS;
