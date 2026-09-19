@@ -14,7 +14,10 @@ import { passesGate, loadLexicon, inLexicon, isTypoOf, resolveAlias } from './pr
 const REJECTS = {
   'Name a major organ': ['blood', 'bone', 'muscle', 'skin', 'hair', 'nail', 'vein', 'artery', 'cell'],
   'Name a fish': ['whale', 'dolphin', 'squid', 'octopus', 'crab', 'lobster', 'shrimp', 'jellyfish', 'seal'],
-  'Name a herb': ['weed', 'grass', 'tree', 'flower', 'salt', 'pepper', 'sugar'],
+  /* "Name a herb" was retired from the norms bank: after non-members were cut
+   * it held 20 real answers, below the 30-answer floor a five-tier ladder
+   * needs. Its REJECTS entry went with it — a key with no prompt is dead
+   * weight that the test suite (rightly) fails on. */
   'Name an insect': ['spider', 'scorpion', 'worm', 'snail', 'slug', 'centipede', 'tick', 'mite'],
   'Name a vehicle': ['road', 'wheel', 'engine', 'tyre', 'tire', 'driver', 'garage'],
   'Name an occupation': ['money', 'work', 'job', 'salary', 'office', 'unemployed'],
@@ -53,7 +56,9 @@ const ALIASES = {
   'Name a fruit': { rockmelon: 'cantaloupe' },
   'Name a kitchen appliance': { stove: 'cooker', hob: 'cooker' },
   'Name a type of boat or ship': { rowboat: 'rowing boat' },
-  'Name a car part': { hood: 'bonnet', trunk: 'boot', windshield: 'windscreen' },
+  /* "Name a car part" is not in either bank — this alias entry has never
+   * matched a prompt. Kept as a comment rather than deleted, because the
+   * US/UK pairs are right and are worth restoring with the prompt. */
   'Name a tool': { wrench: 'spanner', flashlight: 'torch' },
 };
 

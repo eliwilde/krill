@@ -636,8 +636,24 @@ for (const [cat, question] of Object.entries(ALL)) {
   const n = before - members.length;
   if (n) { dropped += n; droppedBy[question] = n; }
 
-  // Too few answers and the tiers cannot be filled meaningfully.
-  if (members.length < 12) { skipped.push(cat + ' (only ' + members.length + ')'); continue; }
+  /* Too few answers and the tiers cannot be filled meaningfully.
+   *
+   * The floor is 30, not 12. Twelve was set when non-members were inflating
+   * every count, and it does not survive contact with the cleaned data: at 12
+   * real answers a five-tier ladder holds 2-3 each, so the list covers so
+   * little of the category that almost every correct answer a player gives is
+   * unlisted. On an OPEN prompt unlisted pays UNCHARTED (8), which means
+   * "beaver", "vole" and "muskrat" all scored 8 for "Name a rodent" while the
+   * listed "margarine" scored 30 for "Name a dairy product" — the ladder
+   * inverts against the player for naming something real.
+   *
+   * Thirty is where a five-tier split has ~6 per tier and the list is a
+   * plausible sample of the category rather than a handful of examples.
+   * Categories below it are dropped rather than shipped broken; the hand-
+   * written bank in prompts.js is where small, genuinely CLOSED categories
+   * belong, because there an unlisted answer is wrong rather than underpaid. */
+  const FLOOR = 30;
+  if (members.length < FLOOR) { skipped.push(cat + ' (only ' + members.length + ')'); continue; }
   const t = tierise(members, cat);
   // Every tier must have something, or scoring has holes.
   const empty = Object.entries(t).filter(([, v]) => v.length === 0).map(([k]) => k);
