@@ -6,6 +6,7 @@
     "test": "node test-scoring.js",
     "check": "node prompt-schema.js",
     "audit": "node audit-tiers.js",
+    "candidates": "node score-candidates.js",
     "lexicon": "node build-lexicon.js",
     "build": "node build-lexicon.js && node test-scoring.js && node build.js",
     "deploy": "node build-lexicon.js && node test-scoring.js && node build.js && wrangler deploy",

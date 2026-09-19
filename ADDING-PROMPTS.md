@@ -7,6 +7,38 @@ node prompt-schema.js     # validate: did I declare everything?
 npm test                  # verify: does scoring still hold?
 ```
 
+## Growing the bank: start with measured categories
+
+Before hand-writing a prompt, check whether the category is one the production
+norms already cover. **51 usable categories are sitting unused**, and a prompt
+built from them arrives with tiers derived from how ~20 people actually
+responded — not from anyone's guess about what sounds obscure.
+
+```bash
+npm run candidates        # rank unused norm categories by fitness
+npm run candidates -- --all   # include ones already in the bank
+```
+
+A category is only usable if it has **both** halves of the shape:
+
+| Half | Why | Threshold |
+|---|---|---|
+| **Consensus** — someone blurts the obvious answer | The first move has to feel like a move. `artistic movement` fails: its top answer got 4 of 20. | top answer named by ≥45% |
+| **Tail** — answers almost nobody says | This is the entire reward loop. `prime number` fails: 22% tail, and the members are 2, 3, 5, 7. | ≥35% named by exactly one person |
+| **Size** — enough to fill five tiers | Below this the proportional split is meaningless. | ≥24 distinct answers |
+
+To add one, put it in the `USE` table in [build-prompts.js](build-prompts.js)
+and rebuild. Tiers are assigned by rank position, not by hand.
+
+The scorer judges **mechanical** suitability only. It cannot tell you whether a
+prompt is interesting, or whether its category boundary is clear enough to
+score fairly — `personal quality` scores well and would still make a poor
+prompt, because players cannot tell a wrong answer from an unlisted one. Read
+the list; do not take the top N.
+
+Hand-writing a prompt is the fallback for categories the norms do not cover
+(closed sets, proper nouns, anything invented since 2022) — not the default.
+
 `npm run build` and `npm run deploy` both run the tests first and refuse to
 ship if they fail.
 
@@ -15,7 +47,7 @@ ship if they fail.
 ## The one decision that matters: `closed`
 
 Every prompt **must** declare `closed`. The validator rejects it otherwise,
-because getting this wrong is the difference between "gibberish pays 70 points"
+because getting this wrong is the difference between "gibberish pays points"
 and "correct answers score zero".
 
 ```js
@@ -32,7 +64,8 @@ scores 0.
 
 **`closed: false`** — the category has a long real tail the list cannot cover.
 Bird, fruit, phobia, knot. An unlisted answer that passes the **gate** scores
-UNCHARTED (70).
+UNCHARTED (8) — deliberately below every measured tier, because an answer the
+game cannot check must never outscore one it can.
 
 ```js
 { q: "Name a type of knot", cat: "culture", closed: false, gate: "wordlike",
