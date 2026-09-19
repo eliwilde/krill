@@ -261,15 +261,29 @@ const ALSO = {
   'chilli': 'chili', 'chillis': 'chili', 'chillies': 'chili',
   'coriander': 'cilantro',
   'swede': 'rutabaga',
-  'rocket': 'arugula',
   'jumper': 'sweater',
   'candyfloss': 'cotton candy',
   'spring onion': 'green onion',
   'prawn': 'shrimp', 'prawns': 'shrimp',
   'plait': 'braid',
-  'tap': 'faucet',
   'sellotape': 'scotch tape',
 };
+
+/* Some UK/US pairs are only synonyms INSIDE one category, and applying them
+ * everywhere corrupts other categories. "rocket" is arugula in a greengrocer
+ * and a projectile everywhere else — applied globally it put "arugula" in the
+ * answer list for BOTH "Name a vehicle" and "Name a weapon". Likewise "tap" is
+ * a faucet in a building but a dance step elsewhere. These need the category. */
+const ALSO_IN = {
+  'vegetable': { 'rocket': 'arugula' },
+  'part of a building': { 'tap': 'faucet' },
+};
+
+function alsoFor(category, mem) {
+  const scoped = ALSO_IN[category];
+  if (scoped && scoped[mem]) return scoped[mem];
+  return ALSO[mem];
+}
 
 /* Both studies, keyed by the prompt's Banks & Connell category name.
  *
@@ -405,6 +419,118 @@ function knownness(mem) {
   return null;
 }
 
+/* ------------------------------------------------------------- exclusions
+ *
+ * The norms are RAW PARTICIPANT RESPONSES, and participants under a 60-second
+ * timer say things that are not category members. Until now every one of those
+ * shipped as a scorable answer, which produced three distinct defects:
+ *
+ *   1. WRONG CATEGORY. "platypus" and "eagles" were listed water birds;
+ *      "arugula" was a listed vehicle AND a listed weapon; "scorpions" an
+ *      insect; "cockroach" a rodent. A player naming the correct thing could
+ *      score less than one naming a mammal.
+ *
+ *   2. NOT AN ANSWER AT ALL. Evaluative or associative words the participant
+ *      free-associated rather than named: "bad" and "booze" as alcoholic
+ *      drinks, "ugly"/"dangerous"/"crawl" as snakes, "go"/"stop"/"beak" as
+ *      birds, "punishment" and "war" as crimes.
+ *
+ *   3. THE CATEGORY WORD ITSELF. "spices" for spice, "ship" for type of ship,
+ *      "boat" for boat — a tautology that pays points for restating the prompt.
+ *
+ * These are judged PER CATEGORY, not globally, because the same word can be a
+ * real member of one category and junk in another: "water" is a real body of
+ * water but not a real type of ship; "father" and "sister" are real family
+ * relatives but not real occupations; "level" and "box" are real carpenter's
+ * tools but not real parts of a building. A global blocklist gets these wrong
+ * in both directions, so each entry below names the category it applies to.
+ *
+ * Only clear defects are listed. Debatable members are LEFT IN — the norms are
+ * evidence of what people actually say, and this filter exists to remove what
+ * is indefensible, not to impose taste. */
+const EXCLUDE = {
+  'Name an alcoholic drink': ['bad', 'booze', 'soda', 'tiger', 'tonic', 'mixers', 'shots', 'spirits', 'liquor', 'cocktail', 'mixed drinks', 'alcohol'],
+  'Name a bird': ['wing', 'feet', 'run', 'eye', 'beak', 'go', 'stop', 'feathers', 'vulcan', 'phoenix', 'mockingjay'],
+  'Name a bird of prey': ['chick', 'chicken', 'dove', 'pigeon', 'seagull', 'crow', 'turkey', 'robin', 'duck', 'pelican', 'blackbird'],
+  'Name a type of boat or ship': ['boat people', 'lifeguard', 'transport', 'casual boat', 'floating markets'],
+  'Name a body of water': ['ice', 'fish tank', 'tank', 'glass of water', 'trickle', 'tsunami', 'iceberg', 'droplets of water', 'icy comets', 'frozen moon', 'europa', 'banks', 'dams'],
+  'Name a building material': ['hammer', 'nails', 'shovel', 'screwdriver', 'paste'],
+  'Name a piece of camping equipment': ['food', 'fire', 'sheet', 'book', 'wood', 'wheel hub', 'chairs', 'pads'],
+  'Name a chemical element': ['water', 'acid', 'alcohol', 'base', 'oil', 'salt', 'gas', 'ammonia', 'h2o', 'carbon dioxide', 'carbon monoxide', 'sodium chloride', 'nitric acid', 'sulfuric acid', 'hydrochloric acid', 'zinc oxide', 'peroxide', 'dioxide', 'nitrate', 'sulfate', 'chloride', 'bromide', 'fluoride', 'hydrochloride', 'cyanide', 'nitroglycerin', 'glycerin', 'freon', 'ferric', 'ion', 'alkaline', 'bronze', 'geranium', 'selidium', 'phosphorous'],
+  'Name a cosmetic': ['surgery', 'hair', 'mirror', 'soap', 'drug', 'implants', 'nails'],
+  'Name a dairy product': ['chocolate', 'eggs', 'biscuit', 'cake', 'bread', 'icing', 'cadbury'],
+  'Name a fabric': ['rag', 'rough', 'soft', 'sheet', 'towel', 'yarn', 'thread', 'cloth', 'plastic', 'knit', 'sheer', 'whipped cream', 'dustcloth', 'dishcloth', 'tablecloth', 'loin', 'upc', 'sequins', 'elastic', 'synthetics', 'plastic leather'],
+  'Name a farm animal': ['dog', 'cat', 'fish', 'rabbit', 'hamsters', 'sheepdog'],
+  'Name a fish': ['porpoise', 'clam', 'sea horse', 'horse', 'zebra', 'tiger', 'rock', 'spot', 'hack', 'northern', 'sucker', 'lox', 'krill'],
+  'Name a flower': ['wild', 'pretty', 'bloom', 'garden', 'pink', 'snowball', 'petal', 'flag', 'posy', 'clover'],
+  'Name a fruit': ['nut', 'berry', 'melon'],
+  'Name a piece of furniture': ['television', 'radio', 'stereo', 'hi-fi', 'picture', 'mirror', 'refrigerator', 'stove', 'ashtray', 'vase', 'computer', 'freezer', 'sink', 'clock', 'lights', 'door', 'fireplace', 'drapes', 'curtains', 'cushion', 'pillow', 'tv', 'cooker', 'phonograph', 'record player'],
+  'Name a gemstone': ['gem', 'jewel', 'gold', 'silver', 'platinum', 'granite', 'marble', 'uranium', 'rhinestone', 'cameo', 'amherst', 'crystal'],
+  'Name a herb': ['garlic', 'marijuana', 'soft bodied plant', 'oregon', 'chilli', 'chili', 'five spice', 'curry mint'],
+  'Name an insect': ['spider', 'tarantula', 'black widow', 'scorpions', 'leech', 'snake', 'rodent', 'daddy longlegs', 'daddy-long-legs', 'thousand-legger', 'larvae', 'silverfork', 'silver bug', 'pill bug', 'stick fly', 'witchetty grub'],
+  'Name a piece of jewellery': ['diamond', 'jade', 'ruby', 'sapphire', 'gold', 'silver', 'gold teeth', 'piercing', 'nose piercing', 'ear piercing', 'facial piercings', 'headbands', 'hairpiece'],
+  'Name a kitchen appliance': ['spoon', 'fork', 'knife', 'plate', 'bowl', 'pot', 'pan', 'table', 'fan', 'tin foil', 'cling film', 'baking paper', 'cupboards', 'cutlery', 'washing machine', 'dryer', 'exhaust', 'flan', 'cake plate', 'cake fork', 'fish fork', 'soup spoon', 'wooden spoon', 'tablespoon', 'teaspoon', 'dessert spoon', 'chopping board', 'pan lids', 'cake tin', 'temperature gauge'],
+  'Name a kitchen utensil': ['food', 'table', 'clock', 'towel', 'sheet', 'sponge', 'broom', 'dustpan', 'cabinets', 'freezer', 'refrigerator', 'ice box', 'sink', 'range', 'stove', 'oven', 'dishwasher', 'washrag', 'dishrag', 'plastic boxes', 'tupperware'],
+  'Name a type of meat': ['dead animal', 'white meat', 'red meat', 'seafood', 'pig product', 'reprocessed meat', 'slabs of beef', 'sausage roll', 'chicken puree', 'pasties', 'vale', 'cow', 'sheep', 'goat', 'deer', 'frog', 'horse', 'zebra', 'crocodile', 'ostrich', 'pigeon', 'rabbit', 'kangaroo'],
+  'Name a metal': ['ore', 'alloy', 'car', 'wire', 'good conduct', 'medal of honor', 'purple heart', 'argon', 'boron', 'sulfur', 'phosphorus', 'solder'],
+  'Name a musical instrument': ['voice', 'human voice', 'soprano', 'alto', 'tenor', 'basso', 'vibes', 'percussion'],
+  'Name a natural landform': ['water', 'stone', 'tree', 'grass', 'plant', 'flowers', 'dirt', 'soil', 'sand', 'clay', 'coal', 'mineral', 'chemicals', 'dust', 'pebbles', 'boulder', 'earthquake', 'fossil', 'land', 'ground', 'bank', 'field', 'hole', 'ditch', 'geographical land', 'guper', 'limestone', 'sandstone', 'reservoirs', 'quarries', 'rocky mountains', 'smoky mountains', 'grand canyon'],
+  'Name a nut': ['roasted', 'salted', 'raisin', 'praline'],
+  'Name a part of the face': ['hair', 'neck', 'skin', 'beard', 'moustache', 'spots'],
+  'Name a religious building': ['house', 'home', 'school', 'building', 'hall', 'auditorium', 'foundation', 'cross', 'mass', 'priest', 'islam', 'christianity', 'pews', 'oracle', 'meeting hall', 'assembly hall', 'funeral home', 'mecca', 'tent'],
+  'Name a rodent': ['cockroach', 'ferret', 'rabbit', 'bats', 'mole', 'weasel', 'snails', 'ant', 'raccoon', 'wombat', 'fleas', 'maggots', 'slugs'],
+  'Name a room in a house': ['cupboard', 'boiler', 'balcony', 'entrance', 'reception', 'diner'],
+  'Name a snake': ['poison', 'long', 'bite', 'crawl', 'coil', 'ugly', 'dangerous', 'venomous', 'venom', 'nonpoisonous', 'reptile', 'lizard', 'worm', 'eel', 'rat', 'cow', 'tiger', 'ring', 'diamond', 'vine', 'rock', 'brown', 'grass', 'milk', 'bull', 'corn', 'black panther', 'black jacket', 'albino', 'slover', 'serpent'],
+  'Name a spice': ['sugar', 'ketchup', 'onions', 'spices', 'butter', 'chocolate', 'vinegar', 'lemon', 'mayonnaise', 'sauce', 'wine', 'oil', 'cheese', 'lime', 'orange', 'relish', 'rum', 'milk', 'cherry', 'alcohol', 'artificial', 'charcoal', 'mushroom', 'apple', 'bacon', 'barley', 'coconut', 'maple', 'pineapple', 'strawberry', 'syrup', 'dressing', 'gravy', 'saccharin', 'salad dressing', 'soy sauce', 'steak sauce', 'anchovies', 'cream', 'extract', 'butterscotch', 'eggs', 'food coloring', 'green pepper', 'margarine', 'raspberry', 'tartar sauce', 'vegetable oil', 'walnut', 'barbecue sauce', 'brandy', 'celery', 'coffee', 'flour', 'seasoning', 'accent', 'a.1. sauce', 'tobasco sauce', 'horseradish', 'maise', 'meat tenderizer', 'tenderizer', 'almond'],
+  'Name a string instrument': ['piano', 'electric piano', 'acoustic piano', 'flute', 'oboe', 'clarinet'],
+  'Name a tool': ['pen', 'paper', 'ball', 'books', 'calculators', 'forks', 'nuts', 'pencils', 'rulers', 'spoons', 'knife', 'spatula', 'mortar', 'cement mixer', 'digger', 'peeler'],
+  'Name a tree': ['ivy', 'conifer', 'versailles', 'gum', 'plane', 'damson', 'huckleberry', 'rosewood', 'zebrawood', 'basswood', 'beechwood', 'ironwood', 'pernambuco'],
+  'Name a vegetable': ['peanut', 'rice', 'pear', 'watermelon', 'pickle', 'sauerkraut', 'baked beans', 'succotash', 'greens', 'parsley', 'horseradish', 'rhubarb', 'mushroom'],
+  'Name a vehicle': ['feet', 'hands', 'ride', 'horse', 'arugula', 'elevator', 'skates', 'roller skates', 'skis', 'surfboard', 'skateboard', 'skate baord', 'skate boarding', 'honda', 'ford', 'chevrolet', 'cadillac', 'buick', 'volkswagen', 'jaguar', 'mustang', 'corvair', 'falcon', 'triumph', 'yamaha', 'mg', 'oldsmobile', 'pontiac', 'caddy', 'el', 'lawn mower', 'wheelbarrow', 'barrow', 'cable car', 'sled', 'dogsled', 'raft', 'balloon', 'cycle'],
+  'Name a water bird': ['platypus', 'eagles', 'hummingbird', 'drake', 'cygnet', 'shag', 'goldeneye', 'teal', 'turnstone', 'kingfisher'],
+  'Name a weapon': ['poison', 'stone', 'glass', 'metal', 'hand', 'foot', 'rock', 'chair', 'boat', 'airplane', 'automobile', 'scarf', 'pin', 'hat pin', 'bottle', 'candlestick', 'gas', 'acid', 'judo', 'muscles', 'nail', 'scissors', 'screwdriver', 'wrench', 'shovel', 'pipe', 'lead pipe', 'iron bar', 'crowbar', 'brick', 'fork', 'cane', 'bat', 'baseball bat', 'rod', 'blade', 'letter opener', 'war on drugs', 'war on poverty', 'war on want', 'lightsabre', 'phaser', 'dandao', 'tank', 'fighter plane', 'chain', 'piano wire'],
+  'Name a wind instrument': ['windpipe', 'vuvuzela'],
+  'Name a four-footed animal': ['baby', 'turtle', 'lizard', 'frog', 'crocodile', 'alligator', 'salamander', 'dinosaur', 'ape', 'monkey', 'gorilla', 'chimpanzee', 'platypus', 'rodent', 'cattle', 'wild beast', 'jackass', 'ass'],
+  'Name a unit of time': ['afternoon', 'evening', 'moment', 'age', 'generation', 'period', 'a.d.', 'b.c.', 'half hour', 'half minute', 'quarter hour', 'ten minutes', 'twenty-four hours', 'one-tenth second', 'split second', 'score'],
+  'Name a unit of distance': ['acre', 'kilogram', 'milligram', 'liter', 'square', 'square yard', 'square foot', 'square inch', 'square mile', 'degree', 'knot', 'block', 'step', 'pace', 'length', 'measured in time', 'half mile', 'half inch', 'quarter inch', 'quarter mile'],
+  'Name a type of ship': ['ship', 'boat', 'water', 'air', 'oil', 'atomic', 'diesel', 'friend', 'private', 'repair', 'supply', 'navy', 'naval', 'transport', 'passenger', 'cargo', 'fishing', 'pleasure', 'airplane', 'spaceship', 'rocket ship', 'flag', 'ship of state', 'tub', 'bark', 'junk', 'queen mary', 'ironsides'],
+  'Name a type of fuel': ['air', 'water power', 'regular', 'liquid', 'combustion', 'sunlight', 'calories', 'grass', 'leaves', 'sugar', 'wax', 'paper', 'oxygen', 'nitrogen', 'liquid oxygen', 'liquid nitrogen', 'helium', 'peroxide', 'hydrogen peroxide', 'carbon chloride', 'esso', 'gulf', 'sunoco', 'amoco', 'lox'],
+  'Name a type of footwear': ['socks', 'stockings', 'nylons', 'hose', 'hosiery', 'leotards', 'peds', 'anklet', 'barefoot', 'brace', 'cast', 'clutch', 'brake', 'gas', 'pedal', 'leather', 'shoelace', 'shoestring', 'skis', 'snow skis', 'water skis', 'skates', 'ice-skates', 'roller skates', 'flippers', 'swim fins', 'spikes'],
+  'Name a type of human dwelling': ['money', 'box', 'tree', 'hole', 'cliff', 'car', 'boat', 'ship', 'train', 'garage', 'barn', 'hospital', 'prison', 'office', 'open air', 'two-story', 'pad'],
+  'Name a weather phenomenon': ['hot', 'cold', 'warm', 'clear', 'calm', 'dry', 'fair', 'humid', 'mild', 'sunny', 'rainy', 'foggy', 'high', 'low', 'front', 'pressure', 'high pressure', 'low pressure', 'temperature', 'thermometer', 'barometer', 'weather vane', 'earthquake', 'volcano eruption', 'avalanche', 'ice', 'heat', 'clear sky', 'pour', 'dampness', 'glaze', 'slush', 'eclipse'],
+  "Name a carpenter's tool": ['wood', 'board', 'cement', 'brick', 'nails', 'screws', 'bolts', 'nuts', 'washer', 'tack', 'glue', 'string', 'chalk', 'blueprints', 'pencil', 'scissors', 'box', 'triangle', 'angle', 'measure', 'balance', 'slide rule', 'bench', 'ladder', 'sawhorse', 'anvil', 'lever', 'wedge', 'shaver', 'measurer', 'scriber', 'punch'],
+  'Name a type of dance': ['slow', 'fast', 'social', 'popular', 'walk', 'hop', 'bob', 'dog', 'bird', 'fish', 'mouse', 'frog', 'chicken', 'snake', 'bug', 'fly', 'potato', 'faucet', 'shotgun', 'eight-one', 'bodie', 'jack the ripper', 'uncle willie', 'elephant walk', 'siamese', 'russian', 'interpretive', 'modern', 'swim', 'surf', 'stomp', 'shuffle', 'belly', 'tap'],
+  'Name a disease': ['bad', 'cold', 'cough', 'fever', 'sore throat', 'liver', 'lung', 'thyroid', 'coronary', 'stroke', 'paralysis', 'allergy', 'fungus', 'consumption', 'mental illness', 'neurosis', 'alcoholism', 'tumors', 'varicose veins', 'kidney disease', 'heart disease'],
+  'Name a crime': ['punishment', 'war', 'bank', 'lying', 'cheating', 'lust', 'attack', 'beating', 'fighting', 'destruction', 'discrimination', 'homosexuality', 'sodomy', 'adultery', 'fornication', 'incest', 'abortion', 'suicide', 'confidence', 'felony', 'misdemeanor', 'stealing', 'killing', 'rob a bank', 'peddling', 'dope peddling', 'litter-bugging'],
+  'Name a branch of science': ['earth', 'social', 'medicine', 'engineering', 'philosophy', 'astrology', 'history', 'architecture', 'agriculture', 'dentistry', 'pharmacy', 'nutrition', 'electronics', 'general science', 'physical science'],
+  'Name a sport': ['pool', 'chess', 'checkers', 'cards', 'girls', 'field', 'apparatus', 'camping', 'fishing', 'hunting', 'shooting', 'racing', 'riding', 'dancing', 'hiking', 'flicker ball', 'speedball', 'speedaway', 'tumbling', 'pole vault'],
+  'Name an occupation': ['father', 'sister', 'mister', 'mrs.', 'sir', 'title', 'position', 'labor', 'military', 'leader', 'master', 'owner', 'chief', 'king', 'private', 'major', 'general', 'colonel', 'lieutenant', 'sergeant', 'captain', 'indian chief', 'candlestick maker', 'thief', 'drifter', 'housewife', 'student', 'blue collar', 'real estate', 'car driver', 'driver', 'baby'],
+  'Name a part of a building': ['people', 'furniture', 'chairs', 'desk', 'carpet', 'rug', 'shade', 'blackboard', 'drinking fountain', 'metal', 'stone', 'glass', 'wood', 'cement', 'brick', 'concrete', 'steel', 'mortar', 'nails', 'boards', 'lumber', 'paint', 'plaster', 'insulation', 'block', 'level', 'section', 'front', 'back', 'rear', 'side', 'inside', 'outside', 'flight', 'exit', 'lock', 'cable', 'rod', 'structure', 'framework'],
+  'Name a non-alcoholic drink': ['water', 'lemon', 'lime', 'cherry', 'chocolate', 'soup', 'malt', 'like', 'ale', 'eggnog', 'cider', 'cream', 'bouillon', 'ade', 'phosphates', 'tang'],
+  'Name a type of reading material': ['sheet', 'card', 'label', 'sign', 'look', 'time', 'mad', 'news', 'music', 'cartoon', 'notebook', 'folder', 'reference', 'literature', 'fiction', 'nonfiction', 'classics', 'drama', 'poetry', 'history', 'prose', 'theme', 'volume', 'story', 'jokes', 'instructions', 'dittoed sheet', 'newsweek', 'playboy', 'racing form'],
+  'Name a family relative': ['children', 'parents', 'grandparents', 'in-laws'],
+  'Name a colour': ['blond', 'auburn', 'flesh', 'cranberry', 'orchid', 'lemon', 'ruby', 'tangerine', 'peach', 'salmon', 'amber', 'ivory', 'cream', 'gold', 'silver', 'emerald', 'rose'],
+};
+
+/* Strip the category's own name, which participants restate under time
+ * pressure ("spices" for spice, "ship" for type of ship). Scoring points for
+ * echoing the prompt is the purest form of the defect. */
+function isTautology(question, mem) {
+  const subject = question.replace(/^Name (a|an|the) /i, '').toLowerCase().trim();
+  const m = mem.toLowerCase().trim();
+  if (m === subject) return true;
+  // "type of ship" -> "ship"; "piece of jewellery" -> "jewellery"
+  const head = subject.replace(/^(type|piece|kind|branch|part|unit) of /, '');
+  return m === head || m === head + 's' || m + 's' === head;
+}
+
+function excluded(question, mem) {
+  const list = EXCLUDE[question];
+  const m = mem.toLowerCase().trim();
+  if (list && list.includes(m)) return true;
+  return isTautology(question, mem);
+}
+
 /* Answers this thinly attested are indistinguishable from each other by
  * production frequency alone — one person in twenty. Above this, the share
  * ordering is real data and prevalence must not override it. */
@@ -415,7 +541,7 @@ const SINGLETON = 0.051;
  * rare. This keeps them mid-tail instead of sweeping them all into DEEP. */
 const UNKNOWN_PREVALENCE = 0.80;
 
-function tierise(members) {
+function tierise(members, category) {
   /* Most-named first. Within the singleton tail — where production frequency
    * has no resolving power — order by how widely the word is known, rarest
    * first, so genuinely obscure answers sink to the deeper tiers and common
@@ -447,7 +573,7 @@ function tierise(members) {
   sorted.forEach(({ mem }, i) => {
     let tier = bounds.find(([, limit]) => i < limit)?.[0] ?? 'deep';
     tier = capByKnownness(mem, tier);
-    for (const word of [mem, ALSO[mem]]) {
+    for (const word of [mem, alsoFor(category, mem)]) {
       if (!word || seen.has(word)) continue;
       seen.add(word);
       out[tier].push(word);
@@ -495,23 +621,61 @@ let skipped = [];
 
 const ALL = { ...USE, ...BATTIG_ONLY };
 
+let dropped = 0;
+const droppedBy = {};
+
 for (const [cat, question] of Object.entries(ALL)) {
-  const members = cats.get(cat);
+  let members = cats.get(cat);
   if (!members) { skipped.push(cat + ' (absent)'); continue; }
+
+  /* Drop non-members BEFORE tiering. Order matters: tiers are assigned by
+   * rank within the surviving list, so filtering afterwards would leave
+   * holes and shift every remaining answer's tier unpredictably. */
+  const before = members.length;
+  members = members.filter((m) => !excluded(question, m.mem));
+  const n = before - members.length;
+  if (n) { dropped += n; droppedBy[question] = n; }
+
   // Too few answers and the tiers cannot be filled meaningfully.
   if (members.length < 12) { skipped.push(cat + ' (only ' + members.length + ')'); continue; }
-  const t = tierise(members);
+  const t = tierise(members, cat);
   // Every tier must have something, or scoring has holes.
   const empty = Object.entries(t).filter(([, v]) => v.length === 0).map(([k]) => k);
   if (empty.length) { skipped.push(cat + ' (empty: ' + empty.join(',') + ')'); continue; }
   entries.push({ q: question, cat: 'norms', ...t });
 }
 
+/* The correctness contract each generated prompt ships with.
+ *
+ * These used to be hand-added to norms-prompts.js AFTER generation, which is
+ * exactly the fragility the file header warns about: the next rebuild silently
+ * dropped all 64 of them and prompt-schema.js rejected the whole bank. They
+ * belong here, where a rebuild preserves them.
+ *
+ * Every norms prompt is `closed: false` — these are everyday categories with
+ * long real tails, so an unlisted answer is usually a real one the study never
+ * recorded. `hinted` is the stricter gate, used where the category has strong
+ * morphological endings that a made-up word will not match. */
+const HINTS = {
+  'Name a bird': 'bird',
+  'Name a bird of prey': 'bird',
+  'Name a chemical element': 'chemical',
+  'Name a fish': 'fish',
+  'Name a flower': 'plant',
+  'Name a metal': 'mineral',
+  'Name a tree': 'plant',
+};
+
 const body = entries.map((e) => {
   const tiers = ['surface', 'tooclever', 'common', 'good', 'deep']
     .map((k) => '    ' + k + ': ' + JSON.stringify(e[k]) + ',')
     .join('\n');
-  return '  { q: ' + JSON.stringify(e.q) + ', cat: "norms",\n' + tiers.replace(/,$/, '') + ' },';
+  const hint = HINTS[e.q];
+  const decl = hint
+    ? ', closed: false, gate: "hinted", hint: ' + JSON.stringify(hint)
+    : ', closed: false, gate: "wordlike"';
+  return '  { q: ' + JSON.stringify(e.q) + ', cat: "norms"' + decl + ',\n'
+    + tiers.replace(/,$/, '') + ' },';
 }).join('\n\n');
 
 fs.writeFileSync(OUT, `/* GENERATED by build-prompts.js — do not edit by hand.
@@ -533,5 +697,11 @@ ${body}
 console.log('categories used   :', entries.length);
 console.log('answers written   :', entries.reduce((n, e) =>
   n + ['surface', 'tooclever', 'common', 'good', 'deep'].reduce((m, k) => m + e[k].length, 0), 0));
+console.log('non-members cut   :', dropped);
 if (skipped.length) console.log('skipped           :', skipped.join(', '));
+if (process.argv.includes('--verbose')) {
+  for (const [q, n] of Object.entries(droppedBy).sort((a, b) => b[1] - a[1])) {
+    console.log('  cut ' + String(n).padStart(3) + '  ' + q);
+  }
+}
 console.log('wrote', path.basename(OUT));
