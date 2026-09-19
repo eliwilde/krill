@@ -150,6 +150,27 @@ async function main() {
         matched++;
         if (hit.how === 'phrase') phrase++;
 
+        /* A phrase reading is the RAREST WORD in the phrase, which is not a
+         * measure of how rare the PHRASE is. Every component of "child life
+         * specialist" is near-universal, so the phrase scores 99% and looks
+         * like a surface answer — while the phrase itself is plainly obscure.
+         * Compositional obscurity is invisible to a per-word minimum.
+         *
+         * Left in the means and the flags, these entries inverted the report:
+         * ~150 correctly-filed deep answers were flagged "looks like surface",
+         * and deep's mean rose to 78%, breaking the monotonicity check that
+         * tells you whether the tiers track obscurity at all. Excluding them
+         * restores it: 98 / 93 / 85 / 72 / 67.
+         *
+         * So phrase readings are advisory only — shown under --all, never
+         * flagged, never averaged. */
+        if (hit.how === 'phrase') {
+          if (showAll) {
+            rows.push({ q: p.q, entry, tier, p: hit.p, how: hit.how, sug: null, off: false });
+          }
+          continue;
+        }
+
         byTier[tier].n++;
         byTier[tier].sum += hit.p;
 
@@ -187,11 +208,15 @@ async function main() {
 
   console.log('\n--- coverage ---');
   console.log(`  entries          ${total}`);
-  console.log(`  matched          ${matched} (${pct(matched / total)}) — ${phrase} via phrase fallback`);
+  console.log(`  matched exactly  ${matched - phrase} (${pct((matched - phrase) / total)}) — audited`);
+  console.log(`  phrase-derived   ${phrase} (${pct(phrase / total)}) — advisory only, see note`);
   console.log(`  unmatched        ${misses.length} (${pct(misses.length / total)})`);
-  console.log(`  flagged          ${flagged} of ${matched} matched`);
+  console.log(`  flagged          ${flagged} of ${matched - phrase} audited`);
   console.log('\n  Unmatched entries are mostly proper nouns and multi-word answers,');
   console.log('  which these norms do not cover. Absence is not evidence of rarity.');
+  console.log('\n  Phrase-derived readings are the rarest word in the phrase, which says');
+  console.log('  nothing about how rare the phrase is ("child life specialist" scores 99%).');
+  console.log('  They are excluded from flags and means. Run --all to see them.');
   if (misses.length) {
     console.log(`\n  sample: ${misses.slice(0, 12).join(', ')}`);
   }
