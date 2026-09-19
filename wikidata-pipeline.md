@@ -277,6 +277,44 @@ the tier awarded. That is the seed corpus for real production norms, costs almos
 nothing, and needs no scoring changes. Revisit percentile tiering when a prompt
 has a few thousand real submissions.
 
+### Built: submission-log.js + day freeze
+
+[submission-log.js](submission-log.js) now records every submission. Row shape:
+
+```json
+{"v":1,"at":"2026-09-18T23:20:17.303Z","session":"668583a3-63a1-4e15",
+ "day":"2026-09-18","prompt":"Name a bird","closed":false,"gate":"hinted",
+ "idx":0,"raw":"robin","tier":"surface","pts":10,"corrected":null,"ms":900}
+```
+
+Design rules, all load-bearing:
+
+- **Raw input, un-coerced.** `cornia`, `wisk`, `zues`, `teepee` and `poly` were
+  every bug found from play. Normalised input would have hidden all of them.
+- **Never blocks the round.** Logged *after* `setState`, so the verdict is
+  already on screen. Every failure is swallowed; a dead endpoint or full quota
+  costs the player nothing.
+- **Logs what the scorer decided, not what it should have.** A row with
+  `tier:"none"` and a correct-looking answer is the bug report.
+- **`ms` is retrieval difficulty.** Already visible in testing: `robin` 900ms vs
+  `hoatzin` 14,000ms. Measured from a monotonic clock so a system time change
+  cannot produce a negative reading.
+- **`day` groups rows by frozen day**, so recalibration compares like with like.
+- No endpoint configured yet (this deploys as static assets with no Worker), so
+  rows buffer in localStorage — capped at 4,000 rows / ~780KB of a 5MB budget,
+  oldest dropped first. `configureLog({endpoint:'/api/log'})` drains them to a
+  collector via `sendBeacon`, falling back to `fetch(keepalive)`. Nothing else
+  changes when that happens.
+- `configureLog({enabled:false})` opts out entirely. Session ids are per page
+  load and never persisted — there is no cross-session tracking.
+
+**Day freeze** is in `game.js` as `buildDailyRound(date)`: a seeded shuffle
+(mulberry32 over an FNV-1a hash of the UTC date) so every player gets the same
+seven prompts for a day, with no server and no fetch. Verified deterministic
+across times of day, and over 60 days it uses 121 of 125 prompts. Opt-in via
+`?daily` — the endless mode is what the game currently is, and switching it
+wholesale is a product decision rather than a bug fix.
+
 ## 5. What IS worth taking from this
 
 **Aliases.** This is the strongest part of the proposal and it addresses a real

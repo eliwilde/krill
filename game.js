@@ -660,6 +660,77 @@ function clashes(q, picked) {
     (q === a && picked.includes(b)) || (q === b && picked.includes(a)));
 }
 
+/* ------------------------------------------------------------- day freeze
+ *
+ * A round can be drawn deterministically from a date, so every player gets the
+ * same seven prompts on the same day — the Wordle model.
+ *
+ * This is not cosmetic. It is the precondition for ever tiering from player
+ * submissions, because live percentile recalibration is a FEEDBACK LOOP: reward
+ * an answer highly, it gets typed more, its percentile rises, it is demoted, so
+ * it pays less and gets typed less again. Tiers oscillate and a player's score
+ * depends on when in the day they played, which makes scores incomparable and
+ * the collected data useless as norms.
+ *
+ * Freezing the day fixes the second half of that: within a day the prompt set
+ * and its tiers are constant, so every submission for a prompt is drawn under
+ * identical conditions. Recalibration then happens BETWEEN days, from the
+ * accumulated log, never from the live scoring stream.
+ *
+ * Deterministic and offline: no server, no fetch, no clock authority beyond the
+ * player's own date. A player in a different timezone gets a different day's
+ * round, which is fine — rows are timestamped in UTC.
+ */
+
+/** A small, fast, well-distributed 32-bit hash. Seeds the day's shuffle. */
+function hashString(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** mulberry32 — a tiny seeded PRNG. Same seed, same sequence, every platform. */
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffledWith(arr, rnd) {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** The UTC day key, e.g. "2026-09-18". */
+export function dayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+/** The frozen round for a given day. Identical for every player, every call. */
+export function buildDailyRound(date = new Date()) {
+  const key = dayKey(date);
+  const rnd = seededRandom(hashString(`strata:${key}`));
+  const out = [];
+  for (const p of shuffledWith(PROMPTS, rnd)) {
+    if (out.length >= ROUND_LENGTH) break;
+    if (clashes(p.q, out.map((x) => x.q))) continue;
+    out.push(p);
+  }
+  return { key, prompts: out };
+}
+
 export function buildRound(seen = []) {
   // Prefer prompts this player hasn't had. Falling straight back to the full
   // bank meant a seventh round repeated whatever it liked; instead we top up

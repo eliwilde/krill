@@ -1,4 +1,5 @@
-import { buildRound, scoreAnswer, deeperExamples, depthFor, STRATA, CONFIG } from './game.js';
+import { buildRound, buildDailyRound, scoreAnswer, deeperExamples, depthFor, STRATA, CONFIG } from './game.js';
+import { logSubmission } from './submission-log.js';
 
 const { SECONDS, ROUND_LENGTH, BEDROCK } = CONFIG;
 
@@ -1063,8 +1064,23 @@ loop();
 let timerId = null;
 function stopTimer() { clearInterval(timerId); timerId = null; }
 
+/* When the current prompt was shown, for submission latency. The countdown only
+ * ticks whole seconds, which is too coarse to tell a blurted answer from a dug-up
+ * one — that distinction is the whole point of recording it. Uses the monotonic
+ * clock so a system time change mid-round cannot produce a negative reading. */
+let shownAt = null;
+function markShown() {
+  shownAt = globalThis.performance?.now?.() ?? Date.now();
+}
+function sinceShown() {
+  if (shownAt == null) return null;
+  const now = globalThis.performance?.now?.() ?? Date.now();
+  return now - shownAt;
+}
+
 function startTimer(onEnd) {
   stopTimer();
+  markShown();
   let left = SECONDS;
   const el = document.getElementById('clock');
   if (el) el.textContent = left;
@@ -1082,13 +1098,38 @@ function startTimer(onEnd) {
 
 /* ================================================================== flow */
 
+/* Daily mode: every player gets the same seven prompts for a UTC day.
+ *
+ * Opt-in via `?daily` (or `#daily`) rather than the default, because the endless
+ * mode is what the game currently is and switching it wholesale is a product
+ * decision, not a bug fix. The machinery is here so the choice is a one-line
+ * change when you want it.
+ *
+ * This is also the precondition for ever tiering from the submission log: within
+ * a frozen day every row for a prompt is collected under identical conditions,
+ * so recalibration can happen BETWEEN days from the log rather than from the
+ * live scoring stream (which would oscillate — see the note on buildDailyRound). */
+function dailyRequested() {
+  try {
+    const { search, hash } = globalThis.location ?? {};
+    return /(^|[?&])daily(=|&|$)/.test(search ?? '') || (hash ?? '') === '#daily';
+  } catch {
+    return false;
+  }
+}
+
 function begin() {
   diveTo(0);
-  setState({ screen: 'play', round: buildRound(state.seen), index: 0, score: 0, log: [] });
+  const daily = dailyRequested();
+  const round = daily ? buildDailyRound().prompts : buildRound(state.seen);
+  setState({ screen: 'play', round, daily, index: 0, score: 0, log: [] });
 }
 
 function submit(raw) {
   stopTimer();
+  // Read the clock before anything else, so scoring and rendering time is not
+  // counted as the player thinking.
+  const latencyMs = sinceShown();
   const prompt = state.round[state.index];
   const res = scoreAnswer(prompt, raw);
   const score = state.score + res.pts;
@@ -1110,11 +1151,25 @@ function submit(raw) {
       deeper: deeperExamples(prompt, res.tier),
     }],
   });
+
+  /* Logged AFTER setState, so the verdict is already on screen: a slow or
+   * blocked write can never delay the reveal. logSubmission never throws, but
+   * the guard makes that guarantee local rather than remote. Raw input is passed
+   * un-coerced — the typos are the data. */
+  try {
+    logSubmission({
+      prompt, raw, result: res, latencyMs, promptIndex: state.index,
+    });
+  } catch { /* logging must never break a round */ }
 }
 
 function advance() {
   const next = state.index + 1;
   if (next >= state.round.length) {
+    // `seen` drives endless-mode variety. A daily round is the same for everyone
+    // by design, so recording it would starve the endless rotation of prompts
+    // the player has not actually chosen to burn.
+    if (state.daily) { setState({ screen: 'done' }); return; }
     const seen = [...state.seen, ...state.round.map((p) => p.q)];
     save(seen);
     setState({ screen: 'done', seen });

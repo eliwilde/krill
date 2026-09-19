@@ -20,7 +20,8 @@
 import { readFileSync } from 'node:fs';
 import { PROMPTS } from './prompts.js';
 import { NORMS_PROMPTS } from './norms-prompts.js';
-import { scoreAnswer, TIERS, ALL_PROMPTS } from './game.js';
+import { scoreAnswer, TIERS, ALL_PROMPTS, buildDailyRound, CONFIG } from './game.js';
+import { logSubmission, summarise } from './submission-log.js';
 import {
   validateBank, loadLexicon, normalise, isTypoOf,
   passesGate, inLexicon, TIER_NAMES,
@@ -453,6 +454,70 @@ for (const w of ['borscht', 'kvass', 'okapi', 'quetzal']) {
 }
 for (const w of MASH) {
   check(`gate rejects mash "${w}"`, !passesGate({ gate: 'wordlike' }, w));
+}
+
+/* ---------------------------------------------- 7. day freeze + logging */
+
+/* The frozen round must be identical for every player on a given UTC day. This
+ * is the precondition for tiering from submissions: if the prompt set or its
+ * tiers move within a day, every row is collected under different conditions and
+ * the data is not norms. */
+{
+  const qs = (r) => r.prompts.map((p) => p.q).join('|');
+  const morning = buildDailyRound(new Date('2026-09-18T00:00:00Z'));
+  const night = buildDailyRound(new Date('2026-09-18T23:59:59Z'));
+  const next = buildDailyRound(new Date('2026-09-19T12:00:00Z'));
+
+  eq('day key is the UTC date', morning.key, '2026-09-18');
+  eq('same day is byte-identical', qs(morning), qs(night));
+  check('a different day differs', qs(morning) !== qs(next));
+  eq('frozen round is a full round', morning.prompts.length, CONFIG.ROUND_LENGTH);
+
+  // No prompt twice in one frozen round, and no known clashing pair.
+  const seen = new Set(morning.prompts.map((p) => p.q));
+  eq('frozen round has no duplicate prompts', seen.size, morning.prompts.length);
+
+  // Over two months it should use most of the bank, not cycle a handful.
+  const used = new Set();
+  for (let d = 0; d < 60; d++) {
+    for (const p of buildDailyRound(new Date(Date.UTC(2026, 8, 18 + d))).prompts) used.add(p.q);
+  }
+  check('60 days of frozen rounds use most of the bank',
+    used.size > ALL.length * 0.7, `used ${used.size} of ${ALL.length}`);
+}
+
+/* The logger must never throw and must never lose the raw input. Both are load-
+ * bearing: it runs on the hot path, and the raw text is the whole dataset. */
+{
+  const prompt = byQ('Name a bird');
+  const res = scoreAnswer(prompt, 'ROBIN  ');
+
+  // No localStorage under Node — which is exactly the "storage blocked" case the
+  // logger has to survive. If it throws here it would throw in a private window.
+  const row = logSubmission({
+    prompt, raw: '  ROBIN  ', result: res, latencyMs: 1234.7, promptIndex: 2,
+  });
+
+  check('logSubmission survives absent localStorage', row !== undefined);
+  if (row) {
+    eq('raw input is preserved un-coerced', row.raw, '  ROBIN  ');
+    eq('tier is recorded', row.tier, res.tier);
+    eq('points are recorded', row.pts, res.pts);
+    eq('latency is rounded to ms', row.ms, 1235);
+    eq('prompt is identified', row.prompt, prompt.q);
+    check('timestamp is ISO UTC', /^\d{4}-\d{2}-\d{2}T.*Z$/.test(row.at));
+  }
+
+  // Malformed input must not throw either — the hot path has no try/catch to spare.
+  for (const bad of [undefined, null, {}, 0, NaN]) {
+    let threw = false;
+    try { logSubmission({ prompt, raw: bad, result: res, latencyMs: bad }); }
+    catch { threw = true; }
+    check(`logSubmission survives raw=${JSON.stringify(bad)}`, !threw);
+  }
+  let threw = false;
+  try { logSubmission({}); } catch { threw = true; }
+  check('logSubmission survives an empty entry', !threw);
 }
 
 /* ------------------------------------------------------------- report */
