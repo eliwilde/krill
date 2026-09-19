@@ -609,8 +609,15 @@ export function validateBank(bank, label = 'bank') {
 
 /* ----------------------------------------------------------------- CLI */
 
-if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`
-    || process.argv[1]?.endsWith('prompt-schema.js')) {
+/* This module is BOTH the validator's entry point and a module the browser
+   loads: game.js imports the answer gate from it. `process` exists only under
+   Node, and an unguarded reference here throws at module-evaluation time in the
+   browser, which takes game.js and the whole page down with it. Node runs this
+   file happily, so the test suite cannot catch it — only loading the page can.
+   The typeof check short-circuits before `process` is ever touched. */
+if (typeof process !== 'undefined' && process.argv
+    && (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`
+        || process.argv[1]?.endsWith('prompt-schema.js'))) {
   const { PROMPTS } = await import('./prompts.js');
   const { NORMS_PROMPTS } = await import('./norms-prompts.js');
 
